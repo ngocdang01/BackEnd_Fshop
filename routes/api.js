@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require('../middleware/auth');
 const userController = require("../controller/controller_user");
-
+const categoryController = require("../controller/controller_categorie");
 // User router
 
 // link : http://localhost:3002/api/register
@@ -29,5 +29,21 @@ router.delete('/users/:id', userController.deleteUser);
 router.post('/reset-password', userController.resetPassword);
 // link : http://localhost:3002/api/logout
 router.post("/logout", userController.logout);
+
+module.exports = router;
+
+// Category router
+// link : http://localhost:3001/api/categories
+router.post('/categories', categoryController.getAllCategories);
+// link : http://localhost:3001/api/categories/code:code
+router.get('/categories/code/:code', categoryController.getCategoryByCode);
+// link : http://localhost:3001/api/categories/:id
+router.get('/categories/:id', categoryController.getCategoryById);
+// link : http://localhost:3001/api/categories/add
+router.post('/categories/add',categoryController.createCategory);
+// link : http://localhost:3001/api/categories/:id
+router.put('/categories/:id', categoryController.updateCategory);
+// link : http://localhost:3001/api/categories/:id
+router.delete('/categories/:id', categoryController.deleteCategory);
 
 module.exports = router;
