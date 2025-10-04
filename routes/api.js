@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require('../middleware/auth');
 const userController = require("../controller/controller_user");
+const oauthController = require('../controller/controller_oauth');
 
 // User router
 
