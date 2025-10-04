@@ -30,4 +30,14 @@ router.post('/reset-password', userController.resetPassword);
 // link : http://localhost:3002/api/logout
 router.post("/logout", userController.logout);
 
+// OAuth routes
+// link: http://localhost:3002/api/auth/google
+router.post('/auth/google', oauthController.googleAuth);
+// link: http://localhost:3002/api/auth/facebook
+router.post('/auth/facebook', oauthController.facebookFirebaseLogin);
+// link: http://localhost:3002/api/auth/link/google
+router.post('/auth/link/google', auth, oauthController.linkGoogleAccount);
+// link: http://localhost:3002/api/auth/link/facebook
+router.post('/auth/link/facebook', auth, oauthController.linkFacebookAccount);
+
 module.exports = router;
