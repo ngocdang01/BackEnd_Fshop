@@ -46,6 +46,8 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt for email:', email);
+
     if (!email || !password) {
       return res.status(400).json({ message: "Email và mật khẩu là bắt buộc" });
     }
@@ -58,6 +60,7 @@ exports.login = async (req, res) => {
       console.log("No user found with email:", email);
       return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" });
     }
+
     // Kiểm tra mật khẩu
     console.log('Comparing password...');
     console.log('Stored password hash:', user.password);
@@ -92,15 +95,12 @@ exports.login = async (req, res) => {
           phone: user.phone,
           role: user.role,
           address: user.address,
-          sex: user.sex,
-        },
+          sex: user.sex
+        }
       });
     } catch (compareError) {
       console.error("Password comparison error:", compareError);
-      res.status(500).json({
-        message: "Lỗi xác thực mật khẩu",
-        error: compareError.message,
-      });
+      res.status(500).json({ message: "Lỗi xác thực mật khẩu", error: compareError.message });
     }
   } catch (error) {
     console.error("Login error:", error);
@@ -135,8 +135,13 @@ exports.updateProfile = async (req, res) => {
         return res.status(400).json({ message: 'Email đã tồn tại' });
       }
     }
+    // Validate email format
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Email không hợp lệ' });
+    }
+
     // Validate phone number
-    if (phone && !/^[0-9]{10}$/.test(phone)) {
+    if (phone && !/^[0-9]{10, 11}$/.test(phone)) {
       return res .status(400).json({ message: 'Số điện thoại không hợp lệ' });
     }
     // Câp nhât thông tin
@@ -149,12 +154,14 @@ exports.updateProfile = async (req, res) => {
     if(sex !== undefined) updateData.sex = sex;
 
     // Cập nhật user với dữ liệu mới
-    Object.assign(user, updateData);await user.save();
+    Object.assign(user, updateData);
+    await user.save();
 
-    // Trả vè thông tin user đã cập
+    // Trả vè thông tin user đã cập nhập(không bao gồm password)
     const updatedUser = await User.findById(user._id).select('-password');
+    
     res.json({
-      message: 'Cập nhật thành công',
+      message: 'Cập nhật thông tin thành công',
       user: updatedUser,
       updatedFields: Object.keys(updateData)
     });
@@ -167,17 +174,26 @@ exports.updateField = async (req, res) => {
  try{
     const { field, value } = req.body;
     const user = await User.findById(req.user.userId);
+
     if ( !user) {
-      return res.status(404)
-      .json({ message: 'Không tìm thấy user' });
+      return res.status(404).json({ message: 'Không tìm thấy user' });
     }
+    
+    //Danh sách các trường được phép cập nhật
     const allowedFields = [ 'name', 'email', 'avatar', 'phone', 'address', 'sex'];
+    
     if (! allowedFields.includes(field)) {
-      return res.status(400).json({ message: 'Trường không hợp lệ', allowedFields});
+      return res.status(400).json({ 
+        message: 'Trường không hợp lệ', 
+        allowedFields });
     }
 
     // Validation cho từng trường
     if ( field === 'email') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        return res.status(400).json({ message: 'Email không hợp lệ' });
+    }
+
       // Kiểm tra email đã tồn tại chưa
       const existingUser = await User.findOne({email: value});
       if( existingUser && existingUser._id.toString() !== user._id.toString()){
@@ -194,6 +210,7 @@ exports.updateField = async (req, res) => {
   // Cập nhật trường
   user[field] = value;
   await user.save();
+
 // trả về thông tin user đã cập nhật
   const updatedUser = await User.findById(user._id).select('-password');
   res.json({
@@ -206,14 +223,17 @@ exports.updateField = async (req, res) => {
   res.status(500).json({ message: 'Lỗi server', error: error.message});
  }
   };
+
   // Lấy thông tin user theo ID (cho admin)
   exports.getUserById = async (req, res) => {
     try {
         const userId = req.params.id;
         const user = await User.findById(userId).select('-password');
+        
         if (!user) {
             return res.status(404).json({ message: 'Không tìm thấy user' });
         }
+
         res.json(user);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
