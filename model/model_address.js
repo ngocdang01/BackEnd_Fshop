@@ -6,9 +6,7 @@ const addressSchema = new mongoose.Schema({
   district: { type: String, required: true },
   commune: { type: String, required: true },
   receivingAddress: { type: String, required: true },
-  phone: { type: String, required: true },
-  note: { type: String }, // ghi chú giao hàng
-  isDefault: { type: Boolean, default: false}, // Đánh dấu địa chỉ mặc định
+  phone: { type: Number, required: true },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'user',

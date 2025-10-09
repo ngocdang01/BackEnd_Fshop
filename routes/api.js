@@ -8,7 +8,7 @@ const oauthController = require('../controller/controller_oauth');
 
 // link : http://localhost:3002/api/register
 router.post("/register", userController.register);
-// link :  
+// link :  http://localhost:3002/api/login
 router.post("/login", userController.login);
 // link : http://localhost:3002/api/profile
 router.get('/profile', auth, userController.getProfile);
