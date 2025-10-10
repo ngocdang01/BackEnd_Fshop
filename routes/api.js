@@ -2,13 +2,12 @@ const express = require("express");
 const router = express.Router();
 const auth = require('../middleware/auth');
 const userController = require("../controller/controller_user");
-const oauthController = require('../controller/controller_oauth');
-
+const categoryController = require("../controller/controller_categorie");
 // User router
 
 // link : http://localhost:3002/api/register
 router.post("/register", userController.register);
-// link :  http://localhost:3002/api/login
+// link : http://localhost:3002/api/login
 router.post("/login", userController.login);
 // link : http://localhost:3002/api/profile
 router.get('/profile', auth, userController.getProfile);
@@ -31,14 +30,20 @@ router.post('/reset-password', userController.resetPassword);
 // link : http://localhost:3002/api/logout
 router.post("/logout", userController.logout);
 
-// OAuth routes
-// link: http://localhost:3002/api/auth/google
-router.post('/auth/google', oauthController.googleAuth);
-// link: http://localhost:3002/api/auth/facebook
-router.post('/auth/facebook', oauthController.facebookFirebaseLogin);
-// link: http://localhost:3002/api/auth/link/google
-router.post('/auth/link/google', auth, oauthController.linkGoogleAccount);
-// link: http://localhost:3002/api/auth/link/facebook
-router.post('/auth/link/facebook', auth, oauthController.linkFacebookAccount);
+module.exports = router;
+
+// Category router
+// link : http://localhost:3001/api/categories
+router.post('/categories', categoryController.getAllCategories);
+// link : http://localhost:3001/api/categories/code:code
+router.get('/categories/code/:code', categoryController.getCategoryByCode);
+// link : http://localhost:3001/api/categories/:id
+router.get('/categories/:id', categoryController.getCategoryById);
+// link : http://localhost:3001/api/categories/add
+router.post('/categories/add',categoryController.createCategory);
+// link : http://localhost:3001/api/categories/:id
+router.put('/categories/:id', categoryController.updateCategory);
+// link : http://localhost:3001/api/categories/:id
+router.delete('/categories/:id', categoryController.deleteCategory);
 
 module.exports = router;
