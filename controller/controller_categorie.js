@@ -56,3 +56,50 @@ exports.createCategory = async (req, res) => {
             res.status(400).json({message: error.message});
     }
 };
+
+// Cập nhật danh mục
+exports.updateCategory = async (req, res) => {
+    try {
+        const { name, code, type, image } = req.body;
+        
+        // Kiểm tra dữ liệu đầu vào
+        if (!name || !code || !type || !image) {
+            return res.status(400).json({ message: 'Tên, mã, loại và hình ảnh danh mục là bắt buộc' });
+        }
+
+        // Kiểm tra type có hợp lệ không
+        if (!['club', 'national'].includes(type)) {
+            return res.status(400).json({ message: 'Loại danh mục phải là "club" hoặc "national"' });
+        }
+
+        const category = await Category.findById(req.params.id);
+        if (!category) {
+            return res.status(404).json({ message: 'Không tìm thấy danh mục' });
+        }
+
+        category.name = name;
+        category.code = code.toLowerCase();
+        category.type = type;
+        category.image = image;
+
+        const updatedCategory = await category.save();
+        res.json(updatedCategory);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// Xóa danh mục
+exports.deleteCategory = async (req, res) => {
+    try {
+        const category = await Category.findById(req.params.id);
+        if (!category) {
+            return res.status(404).json({ message: 'Không tìm thấy danh mục' });
+        }
+
+        await category.deleteOne();
+        res.json({ message: 'Đã xóa danh mục thành công' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}; 
