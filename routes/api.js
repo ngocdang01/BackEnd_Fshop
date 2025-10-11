@@ -1,10 +1,25 @@
 const express = require("express");
 const router = express.Router();
+const path = require('path');
 const auth = require('../middleware/auth');
 const userController = require("../controller/controller_user");
 const oauthController = require('../controller/controller_oauth');
-
+const productController = require('../controller/controller_product');
 // User router
+
+// link : http://localhost:3002/api/
+
+
+// Product routes
+// linl : http://localhost:3002/api/products    //Lấy danh sách sản phẩm
+router.get('/products', productController.getAllProducts);  
+// linl : http://localhost:3002/api/products/:id     // lấy chi  tiết sản phẩm
+router.get('/products/:id', productController.getProductById);
+// linl : http://localhost:3002/api/products/add  // Thêm sản phẩm
+router.post('/products/add', productController.createProduct);    
+// linl : http://localhost:3002/api/products/:id  // Xóa sản phẩmphẩm
+router.delete('/products/:id',productController.deleteProduct);
+
 
 // link : http://localhost:3002/api/register
 router.post("/register", userController.register);
