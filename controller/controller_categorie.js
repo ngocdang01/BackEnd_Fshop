@@ -28,6 +28,19 @@ exports.getCategoryById = async (req,res)=>
         res.status(500).json({message: error.message });
     }
 }
+// Lấy danh mục theo code
+exports.getCategoryByCode = async (req, res) => {
+    try {
+        const { code } = req.params;
+        const category = await Category.findOne({ code: code.toLowerCase() });
+        if (!category) {
+            return res.status(404).json({ message: 'Không tìm thấy danh mục với code này' });
+        }
+        res.json(category);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 // tạo danh mục mới
 exports.createCategory = async (req, res) => {
     try { 

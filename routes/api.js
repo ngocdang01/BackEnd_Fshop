@@ -30,11 +30,11 @@ router.post('/reset-password', userController.resetPassword);
 // link : http://localhost:3002/api/logout
 router.post("/logout", userController.logout);
 
-module.exports = router;
+
 
 // Category router
 // link : http://localhost:3001/api/categories
-router.post('/categories', categoryController.getAllCategories);
+router.get('/categories', categoryController.getAllCategories);
 // link : http://localhost:3001/api/categories/code:code
 router.get('/categories/code/:code', categoryController.getCategoryByCode);
 // link : http://localhost:3001/api/categories/:id
