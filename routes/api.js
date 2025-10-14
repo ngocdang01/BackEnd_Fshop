@@ -12,11 +12,25 @@ const productController = require('../controller/controller_product');
 
 // Product routes
 // link : http://localhost:3002/api/products    // Lấy danh sách sản phẩm
+<<<<<<< HEAD
 router.get('/products', productController.getAllProducts);  
+=======
+router.get("/products", productController.getAllProducts);
+// link http://localhost:3002/api/products/search:    // Tìm kiếm sản phẩm
+router.get("/products/search", productController.searchProducts);
+// linl : http://localhost:3002/api/products/category/:categoryCode    // Lấy sản phẩm theo mã danh mục (category_code)
+router.get('/products/category/:categoryCode',productController.getProductsByCategory);
+>>>>>>> 157624f (fix products + test thanh cong)
 // link : http://localhost:3002/api/products/:id     // Lấy chi tiết sản phẩm
 router.get('/products/:id', productController.getProductById);
 // link : http://localhost:3002/api/products/add  // Thêm sản phẩm
+<<<<<<< HEAD
 router.post('/products/add', productController.createProduct);    
+=======
+router.post("/products/add", productController.createProduct);
+// link : http://localhost:3002/api/products/:id   // Cập nhật sản phẩm
+router.put("/products/:id", productController.updateProduct);
+>>>>>>> 157624f (fix products + test thanh cong)
 // link : http://localhost:3002/api/products/:id  // Xóa sản phẩm
 router.delete('/products/:id', productController.deleteProduct);
 
@@ -46,12 +60,17 @@ router.post('/reset-password', userController.resetPassword);
 // link : http://localhost:3002/api/logout
 router.post("/logout", userController.logout);
 
-
 // Category router
 // link : http://localhost:3002/api/categories
+<<<<<<< HEAD
 router.get('/categories', categoryController.getAllCategories);
 // link : http://localhost:3002/api/categories/code/:code
 router.get('/categories/code/:code', categoryController.getCategoryByCode);
+=======
+router.get("/categories", categoryController.getAllCategories);
+// linl : http://localhost:3001/api/categories/code/:code
+router.get("/categories/code/:code", categoryController.getCategoryByCode);
+>>>>>>> 157624f (fix products + test thanh cong)
 // link : http://localhost:3002/api/categories/:id
 router.get('/categories/:id', categoryController.getCategoryById);
 // link : http://localhost:3002/api/categories/add

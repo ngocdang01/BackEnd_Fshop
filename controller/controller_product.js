@@ -99,4 +99,70 @@ exports.deleteProduct = async (req, res) => {
         }
 }
 // Tìm kiếm sản phẩm
+<<<<<<< HEAD
 exports.searchProducts = async (req, res) => { }
+=======
+exports.searchProducts = async (req, res) => {
+  try {
+    const { keyword, minPrice, maxPrice } = req.query;
+    let query = {};
+
+    if (keyword) {
+      query.name = { $regex: keyword, $options: "i" };
+    }
+
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    const products = await Product.find(query);
+    res.json(products);
+  } catch (error) {
+    console.error("Search products error:", error);
+    res
+      .status(500)
+      .json({ message: "Lỗi khi tìm kiếm sản phẩm", error: error.message });
+  }
+};
+// Lấy sản phẩm theo category_code
+exports.getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryCode } = req.params;
+
+    if (!categoryCode) {
+      return res
+        .status(400)
+        .json({ message: " Trường Category code là bắt buộc" });
+    }
+
+    const products = await Product.find({
+      categoryCode: { $regex: new RegExp(`^${categoryCode}$`, "i") },
+    });
+
+    if (products.length === 0) {
+      return res.status(404).json({
+        message: "Không tìm thấy sản phẩm nào cho category này",
+        categoryCode: categoryCode,
+        products: [],
+      });
+    }
+
+    res.json({
+      message: "Lấy sản phẩm theo category thành công",
+      categoryCode: categoryCode,
+      count: products.length,
+      products: products,
+    });
+  } catch (error) {
+    console.error("Get products by category error:", error);
+    res
+      .status(500)
+      .json({
+        message: "Lỗi khi lấy sản phẩm theo category",
+        error: error.message,
+      });
+  }
+};
+>>>>>>> 157624f (fix products + test thanh cong)
