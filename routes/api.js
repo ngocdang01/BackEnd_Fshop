@@ -20,6 +20,7 @@ router.post('/products/add', productController.createProduct);
 // link : http://localhost:3002/api/products/:id  // Xóa sản phẩm
 router.delete('/products/:id', productController.deleteProduct);
 
+// Product user
 // link : http://localhost:3002/api/register
 router.post("/register", userController.register);
 // link : http://localhost:3002/api/login
@@ -59,5 +60,13 @@ router.post('/categories/add', categoryController.createCategory);
 router.put('/categories/:id', categoryController.updateCategory);
 // link : http://localhost:3002/api/categories/:id
 router.delete('/categories/:id', categoryController.deleteCategory);
+
+// Banner routes
+// link: http://localhost:3001/api/banners
+router.get('/banners', bannerController.getAllBanners);
+// link: http://localhost:3001/api/banners/active
+router.get('/banners/active', bannerController.getActiveBanners);
+// link: http://localhost:3001/api/banners/:id
+router.get('/banners/:id', bannerController.getBannerById);
 
 module.exports = router;
