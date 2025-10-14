@@ -33,3 +33,64 @@ exports.getBannerById = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
+
+
+// Tạo banner mới
+exports.createBanner = async (req, res) => {
+    try {
+        const { name, banner, isActive, order } = req.body;
+
+        if (!name || !banner) {
+            return res.status(400).json({ message: 'Tên và đường dẫn banner là bắt buộc' });
+        }
+
+        const newBanner = new Banner({
+            name,
+            banner,
+            isActive: isActive !== undefined ? isActive : true,
+            order: order || 0
+        });
+
+        await newBanner.save();
+        res.status(201).json({ message: 'Tạo banner thành công', banner: newBanner });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// Cập nhật banner
+exports.updateBanner = async (req, res) => {
+    try {
+        const { name, banner, isActive, order } = req.body;
+        const bannerId = req.params.id;
+
+        const existingBanner = await Banner.findById(bannerId);
+        if (!existingBanner) {
+            return res.status(404).json({ message: 'Không tìm thấy banner' });
+        }
+
+        // Cập nhật thông tin
+        existingBanner.name = name || existingBanner.name;
+        existingBanner.banner = banner || existingBanner.banner;
+        existingBanner.isActive = isActive !== undefined ? isActive : existingBanner.isActive;
+        existingBanner.order = order !== undefined ? order : existingBanner.order;
+
+        await existingBanner.save();
+        res.json({ message: 'Cập nhật banner thành công', banner: existingBanner });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// Xóa banner
+exports.deleteBanner = async (req, res) => {
+    try {
+        const banner = await Banner.findByIdAndDelete(req.params.id);
+        if (!banner) {
+            return res.status(404).json({ message: 'Không tìm thấy banner' });
+        }
+        res.json({ message: 'Xóa banner thành công' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
