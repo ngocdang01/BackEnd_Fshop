@@ -6,7 +6,7 @@ const userController = require("../controller/controller_user");
 const categoryController = require("../controller/controller_categorie");
 const oauthController = require('../controller/controller_oauth');
 const productController = require('../controller/controller_product');
-
+const bannerController = require('../controller/controller_banner');
 // User router
 // link : http://localhost:3002/api/
 
