@@ -17,7 +17,7 @@ const categorySchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum:['club','national'],
+        enum:[],
         required: true
     },
     image: {

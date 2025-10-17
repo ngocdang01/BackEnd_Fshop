@@ -1,0 +1,19 @@
+const mongoose = require('mongoose');
+const Favorite = require('../model/model_favorite');
+// Lấy toàn bộ danh sách sản phẩm yêu thích
+exports.getAllFavorites = async (req, res) => {
+    try {
+        console.log('Getting all favorites...');
+
+        //Lấy toàn bộ dữ liệu favorite trong DB
+        const favorites = await Favorite.find().sort({ createdAt: -1 });
+
+        console.log('Found favorites:', favorites.length);
+
+        //Trả về JSON cho client
+        res.json(favorites);
+    } catch (error) {
+        console.error('Get all favorites error:', error);
+        res.status(500).json({ message: 'Lỗi khi lấy danh sách yêu thích', error: error.message });
+    }
+};
