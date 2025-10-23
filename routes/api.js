@@ -6,6 +6,7 @@ const userController = require("../controller/controller_user");
 const categoryController = require("../controller/controller_categorie");
 const oauthController = require('../controller/controller_oauth');
 const productController = require('../controller/controller_product');
+const saleProductController = require('../controller/controller_sale_product');
 const bannerController = require('../controller/controller_banner');
 // User router
 // link : http://localhost:3002/api/
@@ -19,6 +20,13 @@ router.get('/products/:id', productController.getProductById);
 router.post('/products/add', productController.createProduct);    
 // link : http://localhost:3002/api/products/:id  // Xóa sản phẩm
 router.delete('/products/:id', productController.deleteProduct);
+
+// Sale Product routes
+// link : http://localhost:3002/api/sale-products    // Lấy danh sách sản phẩm khuyến mãi
+router.get('/sale-products', saleProductController.getAllSaleProducts);  
+// link : http://localhost:3002/api/sale-products/:id     // Xóa sản phẩm khuyến mãi
+router.delete('/sale-products/:id', saleProductController.deleteSaleProduct);
+
 
 // Product user
 // link : http://localhost:3002/api/register
