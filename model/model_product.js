@@ -38,11 +38,6 @@ const productSchema = new mongoose.Schema({
         enum: ['S', 'M', 'L', 'XL'],
         default: ['M']
     },
-    colors: {
-        type: [String],
-        enum: ['Đen', 'Trắng', 'Xanh'],
-        default: []
-    },
     categoryCode: {
         type: String,
         required: true

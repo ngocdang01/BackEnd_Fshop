@@ -60,7 +60,7 @@ exports.getProductById = async (req, res) => {
 // Tạo sản phẩm mới
 exports.createProduct = async (req, res) => {
     try {
-        const { name, price, stock, sold, description, images, size, colors, categoryCode } = req.body;
+        const { name, price, stock, sold, description, images, size, categoryCode } = req.body;
 
         if (!name || !price || !stock || !description || !images || !Array.isArray(images) || !size || !Array.isArray(size) || !categoryCode) {
             return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin sản phẩm, images, size và categoryCode hợp lệ' });
@@ -71,18 +71,6 @@ exports.createProduct = async (req, res) => {
             return res.status(400).json({ message: 'Sản phẩm phải có ít nhất một hình ảnh' });
         }
 
-        // Validate colors if provided
-        if (colors && Array.isArray(colors)) {
-            const validColors = ['Đen', 'Trắng', 'Xanh'];
-            const invalidColors = colors.filter(color => !validColors.includes(color));
-            if (invalidColors.length > 0) {
-                return res.status(400).json({ 
-                    message: 'Màu sắc không hợp lệ', 
-                    invalidColors,
-                    validColors 
-                });
-            }
-        }
         const product = new Product({ 
             name, 
             price, 
@@ -91,7 +79,6 @@ exports.createProduct = async (req, res) => {
             description, 
             images, 
             size, 
-            colors, 
             categoryCode 
         });
         const savedProduct = await product.save();
@@ -105,7 +92,7 @@ exports.createProduct = async (req, res) => {
 // Cập nhật sản phẩm
 exports.updateProduct = async (req, res) => { 
     try {
-        const { name, price, stock, sold, description, images, size, colors, categoryCode } = req.body;
+        const { name, price, stock, sold, description, images, size, categoryCode } = req.body;
         const objectId = new Types.ObjectId(req.params.id);
 
         const product = await Product.findById(objectId);
@@ -137,18 +124,6 @@ exports.updateProduct = async (req, res) => {
             }
         }
 
-        // Validate colors if provided
-        if (colors && Array.isArray(colors)) {
-            const validColors = ['Đen', 'Trắng', 'Xanh'];
-            const invalidColors = colors.filter(color => !validColors.includes(color));
-            if (invalidColors.length > 0) {
-                return res.status(400).json({ 
-                    message: 'Màu sắc không hợp lệ', 
-                    invalidColors,
-                    validColors 
-                });
-            }
-        }
 
         if (name) product.name = name;
         if (price !== undefined) product.price = price;
@@ -157,7 +132,6 @@ exports.updateProduct = async (req, res) => {
         if (description) product.description = description;
         if (images && Array.isArray(images)) product.images = images;
         if (size && Array.isArray(size)) product.size = size;
-        if (colors && Array.isArray(colors)) product.colors = colors;
         if (categoryCode) product.categoryCode = categoryCode;
 
         const updatedProduct = await product.save();

@@ -24,6 +24,8 @@ router.delete('/products/:id', productController.deleteProduct);
 // Sale Product routes
 // link : http://localhost:3002/api/sale-products    // Lấy danh sách sản phẩm khuyến mãi
 router.get('/sale-products', saleProductController.getAllSaleProducts);  
+// link: http://localhost:3002/api/sale-products/add
+router.post('/sale-products/add', saleProductController.createSaleProduct);          // Tạo sản phẩm khuyến mãi mới
 // link : http://localhost:3002/api/sale-products/:id     // Xóa sản phẩm khuyến mãi
 router.delete('/sale-products/:id', saleProductController.deleteSaleProduct);
 
