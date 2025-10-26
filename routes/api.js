@@ -14,15 +14,15 @@ const bannerController = require('../controller/controller_banner');
 // Product routes
 // link : http://localhost:3002/api/products    // Lấy danh sách sản phẩm
 router.get('/products', productController.getAllProducts);   
-// linl : http://localhost:3002/api/products/search     // Tìm kiếm sản phẩm
+// link : http://localhost:3002/api/products/search     // Tìm kiếm sản phẩm
 router.get('/products/search', productController.searchProducts);
-// linl : http://localhost:3002/api/products/category/:categoryCode    // Lấy sản phẩm theo category_code
+// link : http://localhost:3002/api/products/category/:categoryCode    // Lấy sản phẩm theo category_code
 router.get('/products/category/:categoryCode', productController.getProductsByCategory);
 // link : http://localhost:3002/api/products/:id     // Lấy chi tiết sản phẩm
 router.get('/products/:id', productController.getProductById);
 // link : http://localhost:3002/api/products/add  // Thêm sản phẩm
 router.post('/products/add', productController.createProduct);    
-// linl : http://localhost:3002/api/products/:id    // Cập nhật lại sản phẩm
+// link : http://localhost:3002/api/products/:id    // Cập nhật lại sản phẩm
 router.put('/products/:id', productController.updateProduct);    
 // link : http://localhost:3002/api/products/:id  // Xóa sản phẩm
 router.delete('/products/:id', productController.deleteProduct);
@@ -30,8 +30,14 @@ router.delete('/products/:id', productController.deleteProduct);
 // Sale Product routes
 // link : http://localhost:3002/api/sale-products    // Lấy danh sách sản phẩm khuyến mãi
 router.get('/sale-products', saleProductController.getAllSaleProducts);  
+// link: http://localhost:3002/api/sale-products/category/:categoryCode       // Lấy sản phẩm khuyến mãi theo category_code
+router.get('/sale-products/category/:categoryCode', saleProductController.getSaleProductsByCategory);    
+// link: http://localhost:3002/api/sale-products/:id        // Lấy sản phẩm KM theo ID
+router.get('/sale-products/:id', saleProductController.getSaleProductById);
 // link: http://localhost:3002/api/sale-products/add
 router.post('/sale-products/add', saleProductController.createSaleProduct);          // Tạo sản phẩm khuyến mãi mới
+// link: http://localhost:3002/api/sale-products/:id       // Cập nhât sản phẩm khuyến mãi
+router.put('/sale-products/:id', saleProductController.updateSaleProduct);  
 // link : http://localhost:3002/api/sale-products/:id     // Xóa sản phẩm khuyến mãi
 router.delete('/sale-products/:id', saleProductController.deleteSaleProduct);
 

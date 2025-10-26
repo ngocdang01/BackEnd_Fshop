@@ -304,3 +304,39 @@ exports.deleteSaleProduct = async (req, res) => {
     });
   }
 };
+// Lấy sản phẩm khuyến mãi theo category_Code
+exports.getSaleProductsByCategory = async (req, res) => {
+  try {
+    const { categoryCode } = req.params;
+    if(!categoryCode) {
+      return res.status(400).json({
+        status: 400,
+        message: "Category code là bắt buộc"
+      });
+    }
+    const saleProducts = await SaleProduct.find({ categoryCode: new RegExp(`^${categoryCode}$`, 'i') });
+
+    if(saleProducts.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        message: "Không có sản phẩm khuyến mãi nào cho category_code",
+        categoryCode: categoryCode,
+        data: []
+      });
+    }
+
+    res.json({
+      status: 200,
+      message: "Lấy thành công",
+      categoryCode: categoryCode,
+      data: saleProducts
+    });
+  } catch (error) {
+    console.error("Get sale products by category error:", error);
+    res.status(500).json({
+      status: 500,
+      message: "Lỗi khi lấy sản phẩm khuyến mãi theo category",
+      error: error.message
+    });
+  }
+};
