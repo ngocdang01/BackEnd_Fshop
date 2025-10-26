@@ -13,11 +13,17 @@ const bannerController = require('../controller/controller_banner');
 
 // Product routes
 // link : http://localhost:3002/api/products    // Lấy danh sách sản phẩm
-router.get('/products', productController.getAllProducts);  
+router.get('/products', productController.getAllProducts);   
+// linl : http://localhost:3002/api/products/search     // Tìm kiếm sản phẩm
+router.get('/products/search', productController.searchProducts);
+// linl : http://localhost:3002/api/products/category/:categoryCode    // Lấy sản phẩm theo category_code
+router.get('/products/category/:categoryCode', productController.getProductsByCategory);
 // link : http://localhost:3002/api/products/:id     // Lấy chi tiết sản phẩm
 router.get('/products/:id', productController.getProductById);
 // link : http://localhost:3002/api/products/add  // Thêm sản phẩm
 router.post('/products/add', productController.createProduct);    
+// linl : http://localhost:3002/api/products/:id    // Cập nhật lại sản phẩm
+router.put('/products/:id', productController.updateProduct);    
 // link : http://localhost:3002/api/products/:id  // Xóa sản phẩm
 router.delete('/products/:id', productController.deleteProduct);
 
