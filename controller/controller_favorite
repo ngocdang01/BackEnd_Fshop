@@ -39,7 +39,7 @@ exports.getUserFavorites = async (req, res) => {
                 const type = fav.type || 'normal';
 
                 //Lấy sản phẩm tương ứng từ DB
-                let product = (type = 'sale')
+                let product = (type === 'sale')
                     ? await SaleProduct.findById(fav.productId)
                     : await Product.findById(fav.productId);
 
@@ -132,3 +132,47 @@ exports.addToFavorites = async (req, res) => {
     }
 };
 
+// Xóa sản phẩm khỏi yêu thích
+exports.removeFromFavorites = async (req, res) => {
+    try {
+        //Lấy userId và productId từ URL params
+        const { userId, productId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ message: 'ID không hợp lệ' });
+        }
+
+        //Tìm và xoá favorite tương ứng
+        const result = await Favorite.findOneAndDelete({ userId, productId, type });
+
+        if (!result) {
+            return res.status(404).json({ message: 'Không tìm thấy sản phẩm trong danh sách yêu thích' });
+        }
+
+        res.json({ message: 'Đã xóa khỏi danh sách yêu thích' });
+    } catch (error) {
+        console.error('Remove from favorites error:', error);
+        res.status(500).json({ message: 'Lỗi khi xóa khỏi yêu thích', error: error.message });
+    }
+};
+
+// Kiểm tra sản phẩm có trong yêu thích không
+exports.checkFavorite = async (req, res) => {
+    try {
+        ////Lấy userId và productId từ URL params
+        const { userId, productId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ message: 'ID không hợp lệ' });
+        }
+
+        //Tìm favorite của user với product
+        const favorite = await Favorite.findOne({ userId, productId });
+
+        //Chuyển object thành boolean (true nếu tồn tại, false nếu null)
+        res.json({ isFavorite: !!favorite });
+    } catch (error) {
+        console.error('Check favorite error:', error);
+        res.status(500).json({ message: 'Lỗi khi kiểm tra yêu thích', error: error.message });
+    }
+};

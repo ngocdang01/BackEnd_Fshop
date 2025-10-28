@@ -78,10 +78,14 @@ router.delete('/banners/:id', bannerController.deleteBanner);
 
 // Favorite routes
 
-// link: http://localhost:3001/api/favorites
+// link: http://localhost:3002/api/favorites
 router.get('/favorites', favoriteController.getAllFavorites);
-// link: http://localhost:3001/api/favorites/:userId
+// link: http://localhost:3002/api/favorites/:userId
 router.get('/favorites/:userId', favoriteController.getUserFavorites);
-// link: http://localhost:3001/api/favorites/add
+// link: http://localhost:3002/api/favorites/add
 router.post('/favorites/add', favoriteController.addToFavorites);
+// link: http://localhost:3001/api/favorites/:userId/:productId
+router.delete('/favorites/:userId/:productId', favoriteController.removeFromFavorites);
+// link: http://localhost:3001/api/favorites/check/:userId/:productId
+router.get('/favorites/check/:userId/:productId', favoriteController.checkFavorite);
 module.exports = router;
