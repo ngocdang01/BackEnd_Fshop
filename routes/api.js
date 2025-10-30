@@ -8,6 +8,8 @@ const oauthController = require('../controller/controller_oauth');
 const productController = require('../controller/controller_product');
 const saleProductController = require('../controller/controller_sale_product');
 const bannerController = require('../controller/controller_banner');
+const favoriteController = require('../controller/controller_favorite');
+
 // User router
 // link : http://localhost:3002/api/
 
@@ -84,17 +86,29 @@ router.put('/categories/:id', categoryController.updateCategory);
 router.delete('/categories/:id', categoryController.deleteCategory);
 
 // Banner routes
-// link: http://localhost:3001/api/banners
+// link: http://localhost:3002/api/banners
 router.get('/banners', bannerController.getAllBanners);
-// link: http://localhost:3001/api/banners/active
+// link: http://localhost:3002/api/banners/active
 router.get('/banners/active', bannerController.getActiveBanners);
-// link: http://localhost:3001/api/banners/:id
+// link: http://localhost:3002/api/banners/:id
 router.get('/banners/:id', bannerController.getBannerById);
-// link: http://localhost:3001/api/banners/add
-router.post('/banners/add', bannerController.createBanner);
-// link: http://localhost:3001/api/banners/:id
+// link: http://localhost:3002/api/banners
+router.post('/banners', bannerController.createBanner);
+// link: http://localhost:3002/api/banners/:id
 router.put('/banners/:id', bannerController.updateBanner);
-// link: http://localhost:3001/api/banners/:id
+// link: http://localhost:3002/api/banners/:id
 router.delete('/banners/:id', bannerController.deleteBanner);
 
+// Favorite routes
+
+// link: http://localhost:3002/api/favorites
+router.get('/favorites', favoriteController.getAllFavorites);
+// link: http://localhost:3002/api/favorites/:userId
+router.get('/favorites/:userId', favoriteController.getUserFavorites);
+// link: http://localhost:3002/api/favorites/add
+router.post('/favorites/add', favoriteController.addToFavorites);
+// link: http://localhost:3001/api/favorites/:userId/:productId
+router.delete('/favorites/:userId/:productId', favoriteController.removeFromFavorites);
+// link: http://localhost:3001/api/favorites/check/:userId/:productId
+router.get('/favorites/check/:userId/:productId', favoriteController.checkFavorite);
 module.exports = router;

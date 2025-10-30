@@ -1,11 +1,14 @@
 const Product = require("../model/model_product");
 const ProductSize = require("../model/model_product_size");
+
 const { Types } = require("mongoose"); // dùng đê convert _id ve objectID
 
 // Lấy danh sách sản phẩm
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find().populate("size");
+
+    const products = await Product.find().populate("sizes");
+
 
     res.json(products);
   } catch (error) {
@@ -13,10 +16,12 @@ exports.getAllProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Lỗi khi lấy sản phẩm",
+
       error: error.message,
     });
   }
 };
+
 // Lấy chi tiết sản phẩm theo ID
 exports.getProductById = async (req, res) => {
   try {
@@ -35,13 +40,16 @@ exports.getProductById = async (req, res) => {
     const objectId = new Types.ObjectId(id);
 
     // Tìm sản phẩm theo ObjectId
+
     const result = await Product.findById(objectId).populate('sizes');
+
 
     if (result) {
       res.json({
         status: 200,
         message: "Đã tìm thấy ID",
         data: result,
+
       });
     } else {
         res.json({
@@ -89,6 +97,7 @@ exports.createProduct = async (req, res) => {
           message:
             "Vui lòng nhập đầy đủ thông tin sản phẩm, images, size và categoryCode hợp lệ",
         });
+
     }
 
     // Validate images array
@@ -97,6 +106,8 @@ exports.createProduct = async (req, res) => {
         .status(400)
         .json({ message: "Sản phẩm phải có ít nhất một hình ảnh" });
     }
+
+
 
     const product = new Product({
       name,
@@ -118,6 +129,7 @@ exports.createProduct = async (req, res) => {
             productModel: 'product'
         }));
     await ProductSize.insertMany(sizeEntries);
+
 
     res
       .status(201)
@@ -142,6 +154,7 @@ exports.updateProduct = async (req, res) => {
       size,
       categoryCode,
       size_items
+
     } = req.body;
     const objectId = new Types.ObjectId(req.params.id);
 
@@ -181,6 +194,7 @@ exports.updateProduct = async (req, res) => {
       }
     }
 
+
     if (name) product.name = name;
     if (price !== undefined) product.price = price;
     if (stock !== undefined) product.stock = stock;
@@ -188,6 +202,7 @@ exports.updateProduct = async (req, res) => {
     if (description) product.description = description;
     if (images && Array.isArray(images)) product.images = images;
     if (size && Array.isArray(size)) product.size = size;
+
     if (categoryCode) product.categoryCode = categoryCode;
 
     const updatedProduct = await product.save();
@@ -203,6 +218,7 @@ exports.updateProduct = async (req, res) => {
             productModel: 'product'
         }));
         await ProductSize.insertMany(sizeEntries);
+
 
     res.json({
       message: "Cập nhật sản phẩm thành công",
@@ -267,7 +283,9 @@ exports.getProductsByCategory = async (req, res) => {
         .json({ message: " Trường Category code là bắt buộc" });
     }
 
+
     const products = await Product.find({ categoryCode: categoryCode.toLowerCase() });
+
 
     if (products.length === 0) {
       return res.status(404).json({
@@ -285,9 +303,11 @@ exports.getProductsByCategory = async (req, res) => {
     });
   } catch (error) {
     console.error("Get products by category error:", error);
+
     res.status(500).json({
       message: "Lỗi khi lấy sản phẩm theo category",
       error: error.message,
     });
+
   }
 };
