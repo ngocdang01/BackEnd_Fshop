@@ -1,10 +1,11 @@
 const SaleProduct = require("../model/model_sale_product");
+const ProductSize = require("../model/model_product_size");
 const { Types } = require("mongoose");
 
 // Lấy danh sách tất cả sản phẩm khuyến mãi
 exports.getAllSaleProducts = async (req, res) => {
   try {
-    const saleProducts = await SaleProduct.find();
+    const saleProducts = await SaleProduct.find().populate("sizes");
     res.json(saleProducts);
   } catch (error) {
     res.status(500).json({
@@ -27,9 +28,9 @@ exports.getSaleProductById = async (req, res) => {
     }
 
     const objectId = new Types.ObjectId(id);
-    const result = await SaleProduct.findById(objectId);
+    const result = await SaleProduct.findById(objectId).populate('sizes');
 
-    if (!result) {
+    if (result) {
       res.json({
         status: 200,
         message: "Đã tìm thấy sản phẩm khuyến mãi",
@@ -65,6 +66,7 @@ exports.createSaleProduct = async (req, res) => {
       size,
       categoryCode,
       isDiscount = true,
+      size_items,
     } = req.body;
 
     // Validation
@@ -178,6 +180,7 @@ exports.updateSaleProduct = async (req, res) => {
       size,
       categoryCode,
       isDiscount,
+      size_items,
     } = req.body;
 
     const objectId = new Types.ObjectId(req.params.id);
@@ -263,6 +266,21 @@ exports.updateSaleProduct = async (req, res) => {
 
     const updatedSaleProduct = await saleProduct.save();
 
+    const productId = updatedSaleProduct._id;
+
+    await ProductSize.deleteMany({
+      productCode: productId,
+      productModel: "sale_product",
+    });
+
+    const sizeEntries = size_items.map((item) => ({
+      size: item.size,
+      quantity: item.quantity,
+      productCode: productId,
+      productModel: "sale_product",
+    }));
+    await ProductSize.insertMany(sizeEntries);
+
     res.json({
       status: 200,
       message: "Cập nhật sản phẩm khuyến mãi thành công",
@@ -314,7 +332,7 @@ exports.getSaleProductsByCategory = async (req, res) => {
         message: "Category code là bắt buộc"
       });
     }
-    const saleProducts = await SaleProduct.find({ categoryCode: new RegExp(`^${categoryCode}$`, 'i') });
+    const saleProducts = await SaleProduct.find({ categoryCode: categoryCode.toLowerCase(), });
 
     if(saleProducts.length === 0) {
       return res.status(404).json({
@@ -327,9 +345,9 @@ exports.getSaleProductsByCategory = async (req, res) => {
 
     res.json({
       status: 200,
-      message: "Lấy thành công",
+      message: "Lấy sản phẩm khuyến mãi theo category thành công",
       categoryCode: categoryCode,
-      data: saleProducts
+      data: saleProducts,
     });
   } catch (error) {
     console.error("Get sale products by category error:", error);
