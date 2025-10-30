@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 // Schema sản phẩm
 const productSchema = new mongoose.Schema({
     name: {
@@ -33,19 +34,30 @@ const productSchema = new mongoose.Schema({
             message: 'Sản phẩm phải có ít nhất một hình ảnh'
         }
     },
-    size: {
-        type: [String],
-        enum: ['S', 'M', 'L', 'XL'],
-        default: ['M']
-    },
     categoryCode: {
         type: String,
         required: true
+    },
+    averageRating: {
+        type: Number,
+        default: 0
+    },
+    totalReviews: {
+        type: Number,
+        default: 0
     }
 
 }, {
     timestamps: true
 });
+
+productSchema.virtual('sizes', {
+  ref: 'product_size',
+  localField: '_id',
+  foreignField: 'productCode'
+});
+productSchema.set('toJSON', { virtuals: true });
+productSchema.set('toObject', { virtuals: true });
 
 const Product = mongoose.model('product', productSchema);
 
