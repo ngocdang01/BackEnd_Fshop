@@ -9,6 +9,7 @@ const productController = require('../controller/controller_product');
 const saleProductController = require('../controller/controller_sale_product');
 const bannerController = require('../controller/controller_banner');
 const favoriteController = require('../controller/controller_favorite');
+const cartController = require('../controller/controller_cart');
 
 // User router
 // link : http://localhost:3002/api/
@@ -111,4 +112,9 @@ router.post('/favorites/add', favoriteController.addToFavorites);
 router.delete('/favorites/:userId/:productId', favoriteController.removeFromFavorites);
 // link: http://localhost:3001/api/favorites/check/:userId/:productId
 router.get('/favorites/check/:userId/:productId', favoriteController.checkFavorite);
+
+// Cart routes
+// link: http://localhost:3002/api/carts
+router.post('/carts/add', cartController.addToCart);
+router.delete('/carts/:user_id', cartController.deleteCartByUserId);
 module.exports = router;
