@@ -1,15 +1,20 @@
 const Product = require("../model/model_product");
+const ProductSize = require("../model/model_product_size");
 const { Types } = require("mongoose"); // dùng đê convert _id ve objectID
 
 // Lấy danh sách sản phẩm
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find();
+
+    const products = await Product.find().populate("size");
+
     res.json(products);
   } catch (error) {
     console.error("Get all products error:", error);
     res.status(500).json({
-      message: "Lỗi khi lấy danh sách sản phẩm",
+
+      success: false,
+      message: "Lỗi khi lấy sản phẩm",
       error: error.message,
     });
   }
@@ -33,28 +38,31 @@ exports.getProductById = async (req, res) => {
     const objectId = new Types.ObjectId(id);
 
     // Tìm sản phẩm theo ObjectId
-    const result = await Product.findById(objectId);
+
+    const result = await Product.findById(objectId).populate('sizes');
 
     if (result) {
       res.json({
         status: 200,
         message: "Đã tìm thấy ID",
         data: result,
+
       });
     } else {
-      res.json({
-        status: 400,
-        message: "Không tìm thấy ID",
-        data: [],
-      });
+        res.json({
+            status: 400,
+            message: "Không tìm thấy ID",
+            data: []
+        });
     }
   } catch (error) {
     console.error("Get product error:", error);
     if (error.name === "CastError") {
-      res.status(400).send("Invalid ID format");
+        res.status(404).send("Invalid ID format");
     } else {
       res.status(500).send("Lỗi server");
     }
+
   }
 };
 
@@ -68,10 +76,11 @@ exports.createProduct = async (req, res) => {
       sold,
       description,
       images,
-      size,
-      colors,
+
       categoryCode,
+      size_items
     } = req.body;
+
     if (
       !name ||
       !price ||
@@ -79,14 +88,15 @@ exports.createProduct = async (req, res) => {
       !description ||
       !images ||
       !Array.isArray(images) ||
-      !size ||
-      !Array.isArray(size) ||
+
       !categoryCode
     ) {
-      return res.status(400).json({
-        message:
-          "Vui lòng nhập đầy đủ thông tin sản phẩm, images, size và categoryCode hợp lệ",
-      });
+      return res
+        .status(400)
+        .json({
+          message:
+            "Vui lòng nhập đầy đủ thông tin sản phẩm, images, size và categoryCode hợp lệ",
+        });
     }
 
     // Validate images array
@@ -96,20 +106,7 @@ exports.createProduct = async (req, res) => {
         .json({ message: "Sản phẩm phải có ít nhất một hình ảnh" });
     }
 
-    // Validate colors if provided
-    if (colors && Array.isArray(colors)) {
-      const validColors = ["Đen", "Trắng", "Xanh"];
-      const invalidColors = colors.filter(
-        (color) => !validColors.includes(color)
-      );
-      if (invalidColors.length > 0) {
-        return res.status(400).json({
-          message: "Màu sắc không hợp lệ",
-          invalidColors,
-          validColors,
-        });
-      }
-    }
+
     const product = new Product({
       name,
       price,
@@ -117,11 +114,20 @@ exports.createProduct = async (req, res) => {
       sold: sold || 0,
       description,
       images,
-      size,
-      colors,
+
       categoryCode,
     });
     const savedProduct = await product.save();
+    const productId = savedProduct._id;
+
+
+    const sizeEntries = size_items.map(item => ({
+            size: item.size,
+            quantity: item.quantity,
+            productCode: productId,
+            productModel: 'product'
+        }));
+    await ProductSize.insertMany(sizeEntries);
 
     res
       .status(201)
@@ -144,8 +150,9 @@ exports.updateProduct = async (req, res) => {
       description,
       images,
       size,
-      colors,
+
       categoryCode,
+      size_items
     } = req.body;
     const objectId = new Types.ObjectId(req.params.id);
 
@@ -185,20 +192,6 @@ exports.updateProduct = async (req, res) => {
       }
     }
 
-    // Validate colors if provided
-    if (colors && Array.isArray(colors)) {
-      const validColors = ["Đen", "Trắng", "Xanh"];
-      const invalidColors = colors.filter(
-        (color) => !validColors.includes(color)
-      );
-      if (invalidColors.length > 0) {
-        return res.status(400).json({
-          message: "Màu sắc không hợp lệ",
-          invalidColors,
-          validColors,
-        });
-      }
-    }
 
     if (name) product.name = name;
     if (price !== undefined) product.price = price;
@@ -207,10 +200,22 @@ exports.updateProduct = async (req, res) => {
     if (description) product.description = description;
     if (images && Array.isArray(images)) product.images = images;
     if (size && Array.isArray(size)) product.size = size;
-    if (colors && Array.isArray(colors)) product.colors = colors;
+
     if (categoryCode) product.categoryCode = categoryCode;
 
     const updatedProduct = await product.save();
+
+    const productId = updatedProduct._id;
+
+    await ProductSize.deleteMany({ productCode: productId, productModel: 'product' });
+
+    const sizeEntries = size_items.map(item => ({
+            size: item.size,
+            quantity: item.quantity,
+            productCode: productId,
+            productModel: 'product'
+        }));
+        await ProductSize.insertMany(sizeEntries);
     res.json({
       message: "Cập nhật sản phẩm thành công",
       product: updatedProduct,
@@ -274,9 +279,8 @@ exports.getProductsByCategory = async (req, res) => {
         .json({ message: " Trường Category code là bắt buộc" });
     }
 
-    const products = await Product.find({
-      categoryCode: { $regex: new RegExp(`^${categoryCode}$`, "i") },
-    });
+
+    const products = await Product.find({ categoryCode: categoryCode.toLowerCase() });
 
     if (products.length === 0) {
       return res.status(404).json({
@@ -294,11 +298,10 @@ exports.getProductsByCategory = async (req, res) => {
     });
   } catch (error) {
     console.error("Get products by category error:", error);
-    res
-      .status(500)
-      .json({
-        message: "Lỗi khi lấy sản phẩm theo category",
-        error: error.message,
-      });
+
+    res.status(500).json({
+      message: "Lỗi khi lấy sản phẩm theo category",
+      error: error.message,
+    });
   }
 };

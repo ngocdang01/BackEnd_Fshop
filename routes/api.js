@@ -6,20 +6,41 @@ const userController = require("../controller/controller_user");
 const categoryController = require("../controller/controller_categorie");
 const oauthController = require('../controller/controller_oauth');
 const productController = require('../controller/controller_product');
+const saleProductController = require('../controller/controller_sale_product');
 const bannerController = require('../controller/controller_banner');
-const favoriteController = require('../controller/controller_favorite');
 // User router
 // link : http://localhost:3002/api/
 
 // Product routes
 // link : http://localhost:3002/api/products    // Lấy danh sách sản phẩm
-router.get('/products', productController.getAllProducts);  
+router.get('/products', productController.getAllProducts);   
+// link : http://localhost:3002/api/products/search     // Tìm kiếm sản phẩm
+router.get('/products/search', productController.searchProducts);
+// link : http://localhost:3002/api/products/category/:categoryCode    // Lấy sản phẩm theo category_code
+router.get('/products/category/:categoryCode', productController.getProductsByCategory);
 // link : http://localhost:3002/api/products/:id     // Lấy chi tiết sản phẩm
 router.get('/products/:id', productController.getProductById);
 // link : http://localhost:3002/api/products/add  // Thêm sản phẩm
 router.post('/products/add', productController.createProduct);    
+// link : http://localhost:3002/api/products/:id    // Cập nhật lại sản phẩm
+router.put('/products/:id', productController.updateProduct);    
 // link : http://localhost:3002/api/products/:id  // Xóa sản phẩm
 router.delete('/products/:id', productController.deleteProduct);
+
+// Sale Product routes
+// link : http://localhost:3002/api/sale-products    // Lấy danh sách sản phẩm khuyến mãi
+router.get('/sale-products', saleProductController.getAllSaleProducts);  
+// link: http://localhost:3002/api/sale-products/category/:categoryCode       // Lấy sản phẩm khuyến mãi theo category_code
+router.get('/sale-products/category/:categoryCode', saleProductController.getSaleProductsByCategory);    
+// link: http://localhost:3002/api/sale-products/:id        // Lấy sản phẩm KM theo ID
+router.get('/sale-products/:id', saleProductController.getSaleProductById);
+// link: http://localhost:3002/api/sale-products/add
+router.post('/sale-products/add', saleProductController.createSaleProduct);          // Tạo sản phẩm khuyến mãi mới
+// link: http://localhost:3002/api/sale-products/:id       // Cập nhât sản phẩm khuyến mãi
+router.put('/sale-products/:id', saleProductController.updateSaleProduct);  
+// link : http://localhost:3002/api/sale-products/:id     // Xóa sản phẩm khuyến mãi
+router.delete('/sale-products/:id', saleProductController.deleteSaleProduct);
+
 
 // Product user
 // link : http://localhost:3002/api/register
@@ -69,9 +90,9 @@ router.get('/banners', bannerController.getAllBanners);
 router.get('/banners/active', bannerController.getActiveBanners);
 // link: http://localhost:3002/api/banners/:id
 router.get('/banners/:id', bannerController.getBannerById);
-// link: http://localhost:3002/api/banners
-router.post('/banners', bannerController.createBanner);
-// link: http://localhost:3002/api/banners/:id
+// link: http://localhost:3001/api/banners/add
+router.post('/banners/add', bannerController.createBanner);
+// link: http://localhost:3001/api/banners/:id
 router.put('/banners/:id', bannerController.updateBanner);
 // link: http://localhost:3002/api/banners/:id
 router.delete('/banners/:id', bannerController.deleteBanner);

@@ -15,11 +15,9 @@ const categorySchema = new mongoose.Schema({
         lowercase: true
 
     },
-    type: {
-        type: String,
-        enum:[],
-        required: true
-    },
+
+   
+
     image: {
         type: String,
         required: true

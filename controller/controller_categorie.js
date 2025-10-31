@@ -46,19 +46,23 @@ exports.createCategory = async (req, res) => {
     try { 
         const { name, code, type, image } = req.body;
         // kiem tra du lieu đầu vào 
-        if (! name || !code || !type || !image) {
+        if (! name || !code || !image) {
             return res.status(400).json({ message: 'Tên, mã, loại và hình ảnh danh mục là bắt buộc' });
         }
-        // kiểm tra type có hợp lệ không
-        if (!['club','national'].includes(type)){
-            return res.status(400).json({ message:
-                'Loại danh mục không hợp lệ. Phải là "club" hoặc "national"' });
-            }
+        // Kiểm tra trùng tên (không phân biệt hoa thường)
+        const existingName = await Category.findOne({ name: new RegExp(`^${name}$`, 'i') });
+        if (existingName) {
+            return res.status(400).json({ message: 'Tên danh mục đã tồn tại' });
+        }
+        // kiểm tra trùng mã code
+        const existing = await Category.findOne({ code: code.toLowerCase() });
+        if (existing) {
+            return res.status(400).json({ message: 'Mã danh mục đã tồn tại' });
+        }
 
             const category = new Category({
                 name,
                 code: code.toLowerCase(),
-                type,
                 image
             
             });
@@ -76,13 +80,26 @@ exports.updateCategory = async (req, res) => {
         const { name, code, type, image } = req.body;
         
         // Kiểm tra dữ liệu đầu vào
-        if (!name || !code || !type || !image) {
-            return res.status(400).json({ message: 'Tên, mã, loại và hình ảnh danh mục là bắt buộc' });
+        if (!name || !code || !image) {
+            return res.status(400).json({ message: 'Tên, mã và hình ảnh danh mục là bắt buộc' });
         }
 
-        // Kiểm tra type có hợp lệ không
-        if (!['club', 'national'].includes(type)) {
-            return res.status(400).json({ message: 'Loại danh mục phải là "club" hoặc "national"' });
+        // Kiểm tra trùng tên (ngoại trừ danh mục hiện tại)
+        const existingName = await Category.findOne({
+            _id: { $ne: req.params.id },
+            name: new RegExp(`^${name}$`, 'i')
+        });
+        if (existingName) {
+            return res.status(400).json({ message: 'Tên danh mục đã tồn tại' });
+        }
+
+        // Kiểm tra trùng mã code (ngoại trừ danh mục hiện tại)
+        const existingCode = await Category.findOne({
+            _id: { $ne: req.params.id },
+            code: code.toLowerCase()
+        });
+        if (existingCode) {
+            return res.status(400).json({ message: 'Mã danh mục đã tồn tại' });
         }
 
         const category = await Category.findById(req.params.id);
@@ -92,7 +109,6 @@ exports.updateCategory = async (req, res) => {
 
         category.name = name;
         category.code = code.toLowerCase();
-        category.type = type;
         category.image = image;
 
         const updatedCategory = await category.save();
