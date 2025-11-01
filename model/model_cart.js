@@ -1,4 +1,7 @@
 const db = require('./db');
+const Favorite = require('../model/model_favorite');
+const Product = require('../model/model_product');
+const SaleProduct = require('../model/model_sale_product');
 
 const cartItemSchema = new db.mongoose.Schema({
   product_id: {

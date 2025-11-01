@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const Favorite = require('../model/model_favorite');
+const Product = require('../model/model_product');
+const SaleProduct = require('../model/model_sale_product');
 // Lấy toàn bộ danh sách sản phẩm yêu thích
 exports.getAllFavorites = async (req, res) => {
     try {
