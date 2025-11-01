@@ -160,9 +160,55 @@ const updateItemQuantity = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+// [DELETE] /api/carts/:user_id/item?product_id=xxx&size=xxx
+const deleteItemFromCart = async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const { product_id, size, type } = req.query;
+
+    if (!product_id || !size || !type) {
+      return res.status(400).json({ success: false, message: 'Thiếu product_id, size hoặc type' });
+    }
+
+    const cart = await Cart.findOne({ user_id });
+    if (!cart) {
+      return res.status(404).json({ success: false, message: 'Cart not found' });
+    }
+
+    const oldLength = cart.items.length;
+    cart.items = cart.items.filter(
+      item => !(item.product_id.equals(product_id) && item.size === size && item.type === type)
+    );
+
+   
+
+    cart.updated_at = new Date();
+    await cart.save();
+
+    res.json({ success: true, message: 'Item deleted', data: cart });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// [DELETE] /api/carts/:user_id
+const deleteCartByUserId = async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const cart = await Cart.findOneAndDelete({ user_id });
+    if (!cart) {
+      return res.status(404).json({ success: false, message: 'Cart not found' });
+    }
+    res.json({ success: true, message: 'Cart deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 module.exports = {
   getCartByUserId,
   addToCart,
-  updateItemQuantity
+  updateItemQuantity,
+  deleteItemFromCart,
+  deleteCartByUserId
 };

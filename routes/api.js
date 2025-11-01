@@ -118,4 +118,6 @@ router.get('/favorites/check/:userId/:productId', favoriteController.checkFavori
 router.post('/carts/add', cartController.addToCart);
 router.get('/carts/:user_id', cartController.getCartByUserId);
 router.put('/carts/:user_id/item', cartController.updateItemQuantity);
+router.delete('/carts/:user_id/item', cartController.deleteItemFromCart);
+router.delete('/carts/:user_id', cartController.deleteCartByUserId);
 module.exports = router;
