@@ -137,6 +137,18 @@ const updateItemQuantity = async (req, res) => {
           !(item.product_id.equals(product_id) && item.size === size &&  item.type === type)
       );
     } else {
+      const checkSize = await ProductSize.findOne({
+        productCode: product_id, 
+        size: size,              
+      });
+
+      if (!checkSize) {
+        return res.status(404).json({ success: false, message: 'Kích thước sản phẩm không tồn tại' });
+      }
+      if (checkSize.quantity < quantity) {
+        return res.status(200).json({ success: false, message: 'Số lượng trong kho không đủ' });
+      }
+
       item.quantity = quantity;
     }
 
@@ -151,5 +163,6 @@ const updateItemQuantity = async (req, res) => {
 
 module.exports = {
   getCartByUserId,
-  addToCart
+  addToCart,
+  updateItemQuantity
 };
