@@ -120,4 +120,5 @@ router.get('/carts/:user_id', cartController.getCartByUserId);
 router.put('/carts/:user_id/item', cartController.updateItemQuantity);
 router.delete('/carts/:user_id/item', cartController.deleteItemFromCart);
 router.delete('/carts/:user_id', cartController.deleteCartByUserId);
+router.put('/carts/upsert', cartController.upsertCart);
 module.exports = router;

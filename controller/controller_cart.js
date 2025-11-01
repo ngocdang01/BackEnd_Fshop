@@ -204,10 +204,34 @@ const deleteCartByUserId = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+// [PUT] /api/carts
+const upsertCart = async (req, res) => {
+  try {
+    const { user_id, items } = req.body;
+    if (!user_id || !Array.isArray(items)) {
+      return res.status(400).json({ success: false, message: 'user_id and items are required' });
+    }
 
+    const hasMissingType = items.some(item => !item.type);
+    if (hasMissingType) {
+      return res.status(400).json({ success: false, message: 'Mỗi item phải có trường type (normal/sale)' });
+    }
+
+    const cart = await Cart.findOneAndUpdate(
+      { user_id },
+      { items, updated_at: new Date() },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    res.json({ success: true, data: cart });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 module.exports = {
   getCartByUserId,
   addToCart,
+  upsertCart,
   updateItemQuantity,
   deleteItemFromCart,
   deleteCartByUserId
