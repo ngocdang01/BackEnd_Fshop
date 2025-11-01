@@ -116,5 +116,6 @@ router.get('/favorites/check/:userId/:productId', favoriteController.checkFavori
 // Cart routes
 // link: http://localhost:3002/api/carts
 router.post('/carts/add', cartController.addToCart);
-router.delete('/carts/:user_id', cartController.deleteCartByUserId);
+router.get('/carts/:user_id', cartController.getCartByUserId);
+router.put('/carts/:user_id/item', cartController.updateItemQuantity);
 module.exports = router;
