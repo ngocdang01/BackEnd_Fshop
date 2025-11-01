@@ -1,12 +1,16 @@
 const Product = require("../model/model_product");
 const ProductSize = require("../model/model_product_size");
+
 const { Types } = require("mongoose"); // dùng đê convert _id ve objectID
 
 // Lấy danh sách sản phẩm
 exports.getAllProducts = async (req, res) => {
   try {
 
-    const products = await Product.find().populate("size");
+
+    const products = await Product.find().populate("sizes");
+
+
 
     res.json(products);
   } catch (error) {
@@ -15,6 +19,7 @@ exports.getAllProducts = async (req, res) => {
 
       success: false,
       message: "Lỗi khi lấy sản phẩm",
+
       error: error.message,
     });
   }
@@ -40,6 +45,7 @@ exports.getProductById = async (req, res) => {
     // Tìm sản phẩm theo ObjectId
 
     const result = await Product.findById(objectId).populate('sizes');
+
 
     if (result) {
       res.json({
@@ -97,6 +103,7 @@ exports.createProduct = async (req, res) => {
           message:
             "Vui lòng nhập đầy đủ thông tin sản phẩm, images, size và categoryCode hợp lệ",
         });
+
     }
 
     // Validate images array
@@ -105,6 +112,7 @@ exports.createProduct = async (req, res) => {
         .status(400)
         .json({ message: "Sản phẩm phải có ít nhất một hình ảnh" });
     }
+
 
 
     const product = new Product({
@@ -129,6 +137,7 @@ exports.createProduct = async (req, res) => {
         }));
     await ProductSize.insertMany(sizeEntries);
 
+
     res
       .status(201)
       .json({ message: "Tạo sản phẩm thành công", product: savedProduct });
@@ -150,9 +159,10 @@ exports.updateProduct = async (req, res) => {
       description,
       images,
       size,
-
       categoryCode,
       size_items
+
+
     } = req.body;
     const objectId = new Types.ObjectId(req.params.id);
 
@@ -216,6 +226,7 @@ exports.updateProduct = async (req, res) => {
             productModel: 'product'
         }));
         await ProductSize.insertMany(sizeEntries);
+
     res.json({
       message: "Cập nhật sản phẩm thành công",
       product: updatedProduct,
@@ -282,6 +293,7 @@ exports.getProductsByCategory = async (req, res) => {
 
     const products = await Product.find({ categoryCode: categoryCode.toLowerCase() });
 
+
     if (products.length === 0) {
       return res.status(404).json({
         message: "Không tìm thấy sản phẩm nào cho category này",
@@ -303,5 +315,6 @@ exports.getProductsByCategory = async (req, res) => {
       message: "Lỗi khi lấy sản phẩm theo category",
       error: error.message,
     });
+
   }
 };
