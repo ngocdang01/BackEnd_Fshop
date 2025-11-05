@@ -11,7 +11,7 @@ const bannerController = require('../controller/controller_banner');
 
 const favoriteController = require('../controller/controller_favorite');
 const cartController = require('../controller/controller_cart');
-
+const voucherController = require('../controller/controller_vouchers');
 
 // User router
 // link : http://localhost:3002/api/
@@ -125,4 +125,11 @@ router.put('/carts/:user_id/item', cartController.updateItemQuantity);
 router.delete('/carts/:user_id/item', cartController.deleteItemFromCart);
 router.delete('/carts/:user_id', cartController.deleteCartByUserId);
 router.put('/carts/upsert', cartController.upsertCart);
+
+// Voucher routes
+// link: http://localhost:3002/api/vouchers
+router.get('/vouchers', voucherController.getAllVouchers);
+// link: http://localhost:3002/api/vouchers/add
+router.post('/vouchers/add', voucherController.createVoucher);
+
 module.exports = router;
