@@ -16,6 +16,31 @@ const getAllVouchers = async (req, res) => {
         });
     }
 };
+
+// Lấy chi tiết voucher
+const getVoucherByCode = async (req, res) => {
+    try {
+        const { code } = req.params;
+        const voucher = await Voucher.findOne({ code: code.toUpperCase() });
+
+        if (!voucher) {
+            return res.status(404).json({
+                success: false,
+                message: 'Voucher not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: voucher
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
 // Tạo mới Voucher
 const createVoucher = async (req, res) => {
     try {
@@ -79,7 +104,33 @@ const createVoucher = async (req, res) => {
     }
 };
 
+// Xóa voucher
+const deleteVoucher = async (req, res) => {
+    try {
+        const { code } = req.params;
+        const voucher = await Voucher.findOneAndDelete({ code: code.toUpperCase()});
+
+        if (!voucher) {
+            return res.status(404).json({
+                success: false,
+                message: 'Voucher not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Voucher deleted successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
 module.exports = {
     getAllVouchers,
-    createVoucher
+    getVoucherByCode,
+    createVoucher,
+    deleteVoucher
 };
