@@ -143,9 +143,11 @@ exports.removeFromFavorites = async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(productId)) {
             return res.status(400).json({ message: 'ID không hợp lệ' });
         }
+  
+
 
         //Tìm và xoá favorite tương ứng
-        const result = await Favorite.findOneAndDelete({ userId, productId, type });
+        const result = await Favorite.findOneAndDelete({ userId, productId });
 
         if (!result) {
             return res.status(404).json({ message: 'Không tìm thấy sản phẩm trong danh sách yêu thích' });
