@@ -117,17 +117,19 @@ router.delete('/favorites/:userId/:productId', favoriteController.removeFromFavo
 // link: http://localhost:3002/api/favorites/check/:userId/:productId
 router.get('/favorites/check/:userId/:productId', favoriteController.checkFavorite);
 
-// Cart routes
-// // link: http://localhost:3002/api/carts
+// CART ROUTES
+
 // link: http://localhost:3002/api/carts/add
 router.post('/carts/add', cartController.addToCart);
+// link: http://localhost:3002/api/carts/:user_id
 router.get('/carts/:user_id', cartController.getCartByUserId);
 // link: http://localhost:3002/api/carts/upsert
 router.put('/carts/upsert', cartController.upsertCart);
 // link: http://localhost:3002/api/carts/:user_id/item
 router.put('/carts/:user_id/item', cartController.updateItemQuantity);
+// link: http://localhost:3002/api/carts/:user_id/item
 router.delete('/carts/:user_id/item', cartController.deleteItemFromCart);
 // link: http://localhost:3002/api/carts/:user_id
-router.get('/carts/:user_id', cartController.getCartByUserId);
 router.delete('/carts/:user_id', cartController.deleteCartByUserId);
+
 module.exports = router;
