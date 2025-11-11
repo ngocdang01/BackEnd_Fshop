@@ -30,10 +30,6 @@ const orderItemSchema = new Schema(
       type: String,
       default: null
     },
-    color: {
-      type: String,
-      default: null
-    },
     isReviewed: {
       type: Boolean,
       default: false
@@ -104,7 +100,14 @@ const orderSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ['waiting', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+      enum: [
+        'waiting',
+        'pending',
+        'confirmed',
+        'shipped',
+        'delivered',
+        'cancelled'
+      ],
       default: 'waiting'
     }
   },
@@ -119,11 +122,14 @@ orderSchema.virtual('id').get(function () {
   return this._id.toHexString();
 });
 
+// Tự tạo mã đơn hàng nếu chưa có
 orderSchema.pre('save', function (next) {
   if (!this.order_code) {
     const date = new Date();
     const pad = (n) => String(n).padStart(2, '0');
-    const ymd = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+    const ymd = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(
+      date.getDate()
+    )}`;
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
     this.order_code = `ORD-${ymd}-${random}`;
   }
