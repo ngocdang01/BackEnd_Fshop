@@ -41,6 +41,7 @@ const getVoucherByCode = async (req, res) => {
         });
     }
 }
+
 // Tạo mới Voucher
 const createVoucher = async (req, res) => {
     try {
@@ -59,6 +60,7 @@ const createVoucher = async (req, res) => {
             createdBy,
             isGlobal
         } = req.body;
+
 
         const voucherData = {
             code: code ? code.toUpperCase() : null,
@@ -89,10 +91,53 @@ const createVoucher = async (req, res) => {
             });
         }
 
+        // Check if voucher code already exists
+        const existingVoucher = await Voucher.findOne({ code: voucherData.code });
+        if (existingVoucher) {
+            return res.status(400).json({
+                success: false,
+                message: 'Voucher code already exists'
+            });
+        }
+
         const voucher = new Voucher(voucherData);
         await voucher.save();
 
         res.status(201).json({
+            success: true,
+            data: voucher
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Update voucher
+const updateVoucher = async (req, res) => {
+    try {
+        const { code } = req.params;
+        const updateData = req.body;
+
+        // Don't allow updating code
+        delete updateData.code;
+
+        const voucher = await Voucher.findOneAndUpdate(
+            { code: code.toUpperCase() },
+            updateData,
+            { new: true, runValidators: true }
+        );
+
+        if (!voucher) {
+            return res.status(404).json({
+                success: false,
+                message: 'Voucher not found'
+            });
+        }
+
+        res.json({
             success: true,
             data: voucher
         });
@@ -128,9 +173,11 @@ const deleteVoucher = async (req, res) => {
         });
     }
 }
+
 module.exports = {
     getAllVouchers,
     getVoucherByCode,
     createVoucher,
+    updateVoucher,
     deleteVoucher
 };

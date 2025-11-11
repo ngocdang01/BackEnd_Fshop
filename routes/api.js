@@ -134,6 +134,8 @@ router.get('/vouchers/:code', voucherController.getVoucherByCode);
 // link: http://localhost:3002/api/vouchers/add
 router.post('/vouchers/add', voucherController.createVoucher);
 // link: http://localhost:3002/api/vouchers/:code
+router.put('/vouchers/:code', voucherController.updateVoucher);
+// link: http://localhost:3002/api/vouchers/:code
 router.delete('/vouchers/:code', voucherController.deleteVoucher);
 
 module.exports = router;
