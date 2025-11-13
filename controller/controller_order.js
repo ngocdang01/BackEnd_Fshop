@@ -187,6 +187,26 @@ const orderController = {
       return res.status(500).json({ message: "Lỗi server khi tạo đơn hàng", error: error.message });
     }
   },
+      // [GET] /api/orders
+getAllOrders: async (req, res) => {
+  try {
+    console.log("🔍 Fetching all orders...");
+
+    const orders = await modelOrder.find()
+      .sort({ createdAt: -1 })
+      .populate('userId', 'name email');
+
+    console.log(`📦 Found ${orders.length} orders`);
+
+    return res.status(200).json({ data: orders });
+  } catch (error) {
+    console.error("❌ getAllOrders error:", error);
+    return res.status(500).json({
+      message: "Lỗi khi lấy danh sách đơn hàng",
+      error: error.message
+    });
+  }
+},
 
   // [PUT] /api/orders/:id/status
   updateStatus: async (req, res) => {
