@@ -214,6 +214,17 @@ const orderController = {
       order.status = status;
       await order.save();
 
+      if (status === "shipped") {
+      setTimeout(async () => {
+        const checkOrder = await modelOrder.findById(id);
+        if (checkOrder && checkOrder.status === "shipped") {
+          checkOrder.status = "delivered";
+          await checkOrder.save();
+          console.log(`✅ Đơn hàng ${id} tự động cập nhật sang delivered sau 40 giây`);
+        }
+      }, 40000); 
+    }
+
     const io = req.app.get('io');
     if (io) {
       const room = `order_${order.userId}`;
