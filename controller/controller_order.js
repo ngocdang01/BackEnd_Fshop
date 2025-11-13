@@ -205,12 +205,6 @@ const orderController = {
         }
       }
 
-      if (status === 'cancelled' && ['confirmed', 'shipped'].includes(oldStatus)) {
-        for (const item of order.items) {
-          await updateProductStock(item, 'increase', 'cancel');
-        }
-      }
-
       order.status = status;
       await order.save();
 
@@ -243,7 +237,86 @@ const orderController = {
     console.error("❌ updateStatus error:", error);
     return res.status(500).json({ message: "Lỗi khi cập nhật trạng thái", error: error.message });
   }
-}
+},
+// [POST] /api/orders/:id/confirm-cod
+confirmCODPayment: async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentAmount } = req.body;
+
+    const order = await modelOrder.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: "Đơn hàng không tồn tại" });
+    }
+
+    if (order.paymentMethod !== 'cod') {
+      return res.status(400).json({ message: "Đơn hàng này không phải thanh toán khi nhận hàng" });
+    }
+
+    if (order.status !== 'delivered') {
+      return res.status(400).json({ message: "Chỉ có thể xác nhận thanh toán khi đơn hàng đã được giao" });
+    }
+
+    if (paymentAmount < order.finalTotal) {
+      return res.status(400).json({
+        message: "Số tiền thanh toán không đủ",
+        required: order.finalTotal,
+        provided: paymentAmount
+      });
+    }
+
+    // Nếu chưa trừ tồn kho, trừ lại
+    if (order.paymentStatus !== 'completed') {
+      console.log(`🔄 Cập nhật tồn kho cho đơn hàng COD thanh toán: ${order.order_code}`);
+      for (const item of order.items) {
+        const success = await updateProductStock(item, 'decrease', 'COD-payment');
+        if (!success) {
+          return res.status(400).json({
+            message: `Không thể cập nhật tồn kho cho sản phẩm ID: ${item.id_product}`
+          });
+        }
+      }
+    } else {
+      console.log(`ℹ️ Đơn hàng ${order.order_code} đã được thanh toán, bỏ qua cập nhật tồn kho`);
+    }
+
+    // Cập nhật trạng thái thanh toán
+    order.paymentStatus = 'completed';
+    order.paymentDetails = {
+      ...order.paymentDetails,
+      transactionId: `COD-${Date.now()}`,
+      paymentTime: new Date().toISOString(),
+      amount: paymentAmount
+    };
+
+    const updatedOrder = await order.save();
+
+    // Emit socket realtime 
+    const io = req.app.get('io');
+    if (io) {
+      const userId = order.userId?.toString();
+      const orderRoom = `order_${userId}`;
+      io.to(orderRoom).emit('orderStatusUpdated', {
+        orderId: updatedOrder._id,
+        status: updatedOrder.status,
+        paymentStatus: updatedOrder.paymentStatus,
+        message: `Đơn hàng #${order.order_code} đã được thanh toán COD thành công.`
+      });
+      console.log(`📢 Gửi socket COD thanh toán thành công đến phòng: ${orderRoom}`);
+    }
+
+    return res.status(200).json({
+      message: "Thanh toán COD thành công",
+      data: updatedOrder
+    });
+
+  } catch (error) {
+    console.error("❌ confirmCODPayment error:", error);
+    return res.status(500).json({ message: "Lỗi khi xác nhận thanh toán COD", error: error.message });
+  }
+},
+
+
 
 };
 
