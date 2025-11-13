@@ -214,15 +214,25 @@ const orderController = {
       order.status = status;
       await order.save();
 
-      return res.status(200).json({
-        message: "Cập nhật trạng thái đơn hàng thành công",
-        data: order
+    const io = req.app.get('io');
+    if (io) {
+      const room = `order_${order.userId}`;
+      io.to(room).emit('orderStatusUpdated', {
+        orderId: order._id,
+        status: order.status,
       });
-    } catch (error) {
-      console.error("❌ updateStatus error:", error);
-      return res.status(500).json({ message: "Lỗi khi cập nhật trạng thái", error: error.message });
+      console.log(`📡 Gửi socket "orderStatusUpdated" tới room: ${room}`);
     }
+
+    return res.status(200).json({
+      message: "Cập nhật trạng thái đơn hàng thành công",
+      data: order,
+    });
+  } catch (error) {
+    console.error("❌ updateStatus error:", error);
+    return res.status(500).json({ message: "Lỗi khi cập nhật trạng thái", error: error.message });
   }
+}
 
 };
 
