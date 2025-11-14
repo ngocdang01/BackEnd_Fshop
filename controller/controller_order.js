@@ -4,7 +4,7 @@ const SaleProduct = require('../model/model_sale_product');
 const Voucher = require('../model/model_voucher');
 const User = require('../model/model_user');
 
-// ================= Helper: cập nhật tồn kho =================
+// Helper: cập nhật tồn kho 
 const updateProductStock = async (item, operation = 'decrease', source = 'unknown') => {
   try {
     let product = await SaleProduct.findById(item.id_product);
@@ -39,6 +39,38 @@ const updateProductStock = async (item, operation = 'decrease', source = 'unknow
     return false;
   }
 };
+// Helper: populate chi tiết sản phẩm cho từng đơn
+const populateProductDetails = async (order) => {
+  try {
+    const populatedItems = await Promise.all(
+      order.items.map(async (item) => {
+        let product = await Product.findById(item.id_product).select('name images price size colors');
+        if (!product) {
+          product = await SaleProduct.findById(item.id_product).select('name images price discount_price discount_percent size colors');
+          if (product) {
+            product = product.toObject();
+            product.isSaleProduct = true;
+          }
+        }
+
+        return {
+          ...item.toObject(),
+          productDetails: product,
+          images: item.images || product?.images || []
+        };
+      })
+    );
+
+    return {
+      ...order.toObject(),
+      items: populatedItems
+    };
+  } catch (error) {
+    console.error('❌ Lỗi khi populate chi tiết sản phẩm:', error);
+    return order;
+  }
+};
+
 const orderController = {
 
   // [POST] /api/orders
@@ -207,6 +239,53 @@ getAllOrders: async (req, res) => {
     });
   }
 },
+// [GET] /api/orders/:id
+getOrderById: async (req, res) => {
+  try {
+    const order = await modelOrder.findById(req.params.id)
+      .populate('userId', 'name email');
+
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+
+    const populatedOrder = await populateProductDetails(order);
+
+    return res.status(200).json({ data: populatedOrder });
+  } catch (error) {
+    console.error("❌ getOrderById error:", error);
+    return res.status(500).json({ message: "Lỗi khi lấy đơn hàng", error: error.message });
+  }
+},
+
+// [GET] /api/orders/user/:userId
+getOrdersByUserId: async (req, res) => {
+  try {
+    const orders = await modelOrder.find({ userId: req.params.userId })
+      .sort({ createdAt: -1 });
+
+    if (!orders || orders.length === 0) {
+      return res.status(200).json({ data: [] });
+    }
+
+    const populatedOrders = await Promise.all(
+      orders.map(async (order) => {
+        try {
+          return await populateProductDetails(order);
+        } catch (populateError) {
+          console.error(`❌ Lỗi populate đơn ${order._id}:`, populateError.message);
+          return order;
+        }
+      })
+    );
+
+    return res.status(200).json({ data: populatedOrders });
+  } catch (error) {
+    console.error("❌ getOrdersByUserId error:", error);
+    return res.status(500).json({ message: "Lỗi khi lấy đơn theo user", error: error.message });
+  }
+},
+
 
   // [PUT] /api/orders/:id/status
   updateStatus: async (req, res) => {

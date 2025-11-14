@@ -137,6 +137,10 @@ router.delete('/carts/:user_id', cartController.deleteCartByUserId);
 router.post('/orders', orderController.createOrder);
 // link: http://localhost:3002/api/orders
 router.get('/orders', orderController.getAllOrders);
+// link: http://localhost:3002/api/orders/:id
+router.get('/orders/:id', orderController.getOrderById);
+// link: http://localhost:3002/api/orders/user/:userId
+router.get('/orders/user/:userId', orderController.getOrdersByUserId);
 // link : http://localhost:3002/api/orders/:id/status
 router.put('/orders/:id/status', orderController.updateStatus);
 module.exports = router;
