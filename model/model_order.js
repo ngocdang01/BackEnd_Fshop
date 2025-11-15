@@ -121,6 +121,13 @@ const orderSchema = new Schema(
 orderSchema.virtual('id').get(function () {
   return this._id.toHexString();
 });
+// ✅ THÊM: Virtual field để tính tổng số lượng sản phẩm
+orderSchema.virtual('totalItems').get(function() {
+  if (!this.items || !Array.isArray(this.items)) {
+    return 0;
+  }
+  return this.items.reduce((total, item) => total + (item.purchaseQuantity || 0), 0);
+});
 
 // Tự tạo mã đơn hàng nếu chưa có
 orderSchema.pre('save', function (next) {

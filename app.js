@@ -5,17 +5,34 @@ var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 var cors = require("cors");
 var http = require("http");
-require("./model/db"); // Kết nối MongoDB
+require("./model/db"); 
 
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 var apiRouter = require("./routes/api");
+
 var app = express();
 
-// Tao HTTP Server
+// ✔ Tạo server TRƯỚC
 const server = http.createServer(app);
 
-// view engine setup
+// ✔ Khởi tạo socket.io
+const io = require('socket.io')(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT'],
+    allowedHeaders: ['*'],
+    credentials: true,
+  },
+  transports: ['websocket', 'polling']
+});
+app.set('io', io);
+
+// ✔ Nạp socket handlers
+const initializeOrderSocket = require('./socketHandlers/orderStatus');
+initializeOrderSocket(io);
+
+// View engine setup
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
@@ -27,30 +44,29 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Không Capche api
+// No-cache API
 app.use((req, res, next) => {
   res.set("Cache-Control", "no-store");
   next();
 });
 
-//Router
+// Routers
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/api", apiRouter);
-// catch 404 and forward to error handler
+
+// 404
 app.use(function (req, res, next) {
   next(createError(404));
 });
 
-// error handler
+// Error handler
 app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
-
-  // render the error page
   res.status(err.status || 500);
   res.render("error");
 });
 
-module.exports = app;
+// ✔ Export đúng
+module.exports =  app;

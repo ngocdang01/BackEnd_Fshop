@@ -8,7 +8,7 @@ const oauthController = require('../controller/controller_oauth');
 const productController = require('../controller/controller_product');
 const saleProductController = require('../controller/controller_sale_product');
 const bannerController = require('../controller/controller_banner');
-
+const orderController = require('../controller/controller_order');
 const favoriteController = require('../controller/controller_favorite');
 const cartController = require('../controller/controller_cart');
 const voucherController = require('../controller/controller_vouchers');
@@ -134,7 +134,6 @@ router.delete('/carts/:user_id/item', cartController.deleteItemFromCart);
 // link: http://localhost:3002/api/carts/:user_id
 router.delete('/carts/:user_id', cartController.deleteCartByUserId);
 
-<<<<<<< HEAD
 // Order routes
 // link : http://localhost:3002/api/orders
 router.post('/orders', orderController.createOrder);
@@ -146,7 +145,6 @@ router.get('/orders/:id', orderController.getOrderById);
 router.get('/orders/user/:userId', orderController.getOrdersByUserId);
 // link : http://localhost:3002/api/orders/:id/status
 router.put('/orders/:id/status', orderController.updateStatus);
-=======
 // Voucher routes
 // link: http://localhost:3002/api/vouchers
 router.get('/vouchers', voucherController.getAllVouchers);
@@ -163,5 +161,4 @@ router.delete('/vouchers/:code', voucherController.deleteVoucher);
 // link: http://localhost:3002/api/user-vouchers/assign
 router.post('/user-vouchers/assign', userVoucherController.assignVoucherToUser);
 
->>>>>>> c0c4eed1b49cbaa65c3046618eb2c1a8b5044e3a
 module.exports = router;
