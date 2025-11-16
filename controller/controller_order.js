@@ -3,15 +3,19 @@ const Product = require('../model/model_product');
 const SaleProduct = require('../model/model_sale_product');
 const Voucher = require('../model/model_voucher');
 const User = require('../model/model_user');
+const ProductSize = require('../model/model_product_size');
 
-// Helper: cập nhật tồn kho 
+// Helper: Cập nhật tồn kho sản phẩm
 const updateProductStock = async (item, operation = 'decrease', source = 'unknown') => {
   try {
     let product = await SaleProduct.findById(item.id_product);
     let isSaleProduct = false;
-
-    if (product) isSaleProduct = true;
-    else product = await Product.findById(item.id_product);
+    
+    if (product) {
+      isSaleProduct = true;
+    } else {
+      product = await Product.findById(item.id_product);
+    }
 
     if (!product) {
       console.error(`❌ Không tìm thấy sản phẩm ID: ${item.id_product}`);
@@ -19,26 +23,48 @@ const updateProductStock = async (item, operation = 'decrease', source = 'unknow
     }
 
     if (operation === 'decrease' && product.stock < item.purchaseQuantity) {
-      console.error(`❌ Sản phẩm "${product.name}" không đủ hàng để giảm tồn`);
+      console.error(`❌ Sản phẩm "${product.name}" chỉ còn ${product.stock} trong kho, không đủ cho ${item.purchaseQuantity} sản phẩm`);
       return false;
     }
 
-    const stockChange = operation === 'decrease' ? -item.purchaseQuantity : item.purchaseQuantity;
+    const quantityChange = operation === 'decrease' ? -item.purchaseQuantity : item.purchaseQuantity;
     const soldChange = operation === 'decrease' ? item.purchaseQuantity : -item.purchaseQuantity;
 
-    const targetModel = isSaleProduct ? SaleProduct : Product;
+    if (isSaleProduct) {
+      await SaleProduct.findByIdAndUpdate(item.id_product, {
+        $inc: { 
+          sold: soldChange,
+          stock: quantityChange
+        }
+      });
+      await ProductSize.findOneAndUpdate({productCode: item.id_product,  size: item.size }, {
+        $inc: { 
+          quantity: quantityChange
+        }
+      });
+      console.log(`✅ Đã ${operation === 'decrease' ? 'giảm' : 'tăng'} tồn kho sản phẩm giảm giá: ${product.name} (${source})`);
+    } else {
+      await Product.findByIdAndUpdate(item.id_product, {
+        $inc: { 
+          sold: soldChange,
+          stock: quantityChange
+        }
+      });
+      await ProductSize.findOneAndUpdate({productCode: item.id_product,  size: item.size }, {
+        $inc: { 
+          quantity: quantityChange
+        }
+      });
+      console.log(`✅ Đã ${operation === 'decrease' ? 'giảm' : 'tăng'} tồn kho sản phẩm thường: ${product.name} (${source})`);
+    }
 
-    await targetModel.findByIdAndUpdate(item.id_product, {
-      $inc: { stock: stockChange, sold: soldChange }
-    });
-
-    console.log(`✅ ${operation === 'decrease' ? 'Giảm' : 'Tăng'} tồn kho cho ${isSaleProduct ? 'sản phẩm giảm giá' : 'sản phẩm thường'}: ${product.name} (${source})`);
     return true;
   } catch (error) {
-    console.error(`❌ Lỗi cập nhật tồn kho:`, error);
+    console.error(`❌ Lỗi cập nhật tồn kho cho sản phẩm ${item.id_product}:`, error);
     return false;
   }
 };
+
 // Helper: populate chi tiết sản phẩm cho từng đơn
 const populateProductDetails = async (order) => {
   try {
@@ -288,50 +314,74 @@ getOrdersByUserId: async (req, res) => {
 
 
   // [PUT] /api/orders/:id/status
-  updateStatus: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
+updateStatus: async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
 
-      const order = await modelOrder.findById(id);
-      if (!order) return res.status(404).json({ message: "Đơn hàng không tồn tại" });
+    const order = await modelOrder.findById(id);
+    if (!order) return res.status(404).json({ message: "Đơn hàng không tồn tại" });
 
-      const oldStatus = order.status;
+    const oldStatus = order.status;
 
-      if (status === 'confirmed' && oldStatus === 'waiting') {
+    if (status === 'confirmed' && oldStatus === 'waiting') {
+      if (order.paymentMethod === 'cod') {
+        console.log(`🔽 Trừ kho vì COD xác nhận đơn: ${order.order_code}`);
         for (const item of order.items) {
-          await updateProductStock(item, 'decrease', 'confirm');
+          await updateProductStock(item, 'decrease', 'COD-confirm');
+        }
+      } else {
+        console.log(`ℹ️ Đơn không phải COD → KHÔNG trừ tồn kho`);
+      }
+    }
+
+    if (status === 'cancelled' && ['confirmed', 'shipped', 'pending'].includes(oldStatus)) {
+      console.log(`🔁 Hoàn kho do đơn bị hủy: ${order.order_code}`);
+      for (const item of order.items) {
+        await updateProductStock(item, 'increase', 'cancel');
+      }
+    }
+
+
+    if (['confirmed', 'shipped', 'pending'].includes(status) && oldStatus === 'cancelled') {
+      console.log(`🔄 Giảm lại tồn vì admin xác nhận lại đơn đã hủy: ${order.order_code}`);
+      for (const item of order.items) {
+        const ok = await updateProductStock(item, 'decrease', 'reconfirm');
+        if (!ok) {
+          return res.status(400).json({
+            message: `Không thể trừ tồn kho cho sản phẩm ${item.id_product}`
+          });
         }
       }
+    }
 
-      order.status = status;
-      await order.save();
+    order.status = status;
+    await order.save();
 
-      if (status === "shipped") {
+    if (status === "shipped") {
       setTimeout(async () => {
         const checkOrder = await modelOrder.findById(id);
         if (checkOrder && checkOrder.status === "shipped") {
           checkOrder.status = "delivered";
           await checkOrder.save();
-          console.log(`✅ Đơn hàng ${id} tự động cập nhật sang delivered sau 40 giây`);
+          console.log(`📦 Auto chuyển đơn ${id} sang delivered sau 40 giây`);
         }
-      }, 40000); 
+      }, 40000);
     }
 
     const io = req.app.get('io');
     if (io) {
-      const room = `order_${order.userId}`;
-      io.to(room).emit('orderStatusUpdated', {
+      io.to(`order_${order.userId}`).emit('orderStatusUpdated', {
         orderId: order._id,
         status: order.status,
       });
-      console.log(`📡 Gửi socket "orderStatusUpdated" tới room: ${room}`);
     }
 
     return res.status(200).json({
       message: "Cập nhật trạng thái đơn hàng thành công",
       data: order,
     });
+
   } catch (error) {
     console.error("❌ updateStatus error:", error);
     return res.status(500).json({ message: "Lỗi khi cập nhật trạng thái", error: error.message });

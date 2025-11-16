@@ -105,6 +105,8 @@ router.post('/banners', bannerController.createBanner);
 router.put('/banners/:id', bannerController.updateBanner);
 // link: http://localhost:3002/api/banners/:id
 router.delete('/banners/:id', bannerController.deleteBanner);
+// link: http://localhost:3002/api/banners/:id/toggle
+router.put('/banners/:id/toggle', bannerController.toggleBannerStatus);
 
 // Favorite routes
 
