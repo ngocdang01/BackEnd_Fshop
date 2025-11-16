@@ -97,11 +97,9 @@ router.get('/banners', bannerController.getAllBanners);
 router.get('/banners/active', bannerController.getActiveBanners);
 // link: http://localhost:3002/api/banners/:id
 router.get('/banners/:id', bannerController.getBannerById);
-
 // link: http://localhost:3002/api/banners
 router.post('/banners', bannerController.createBanner);
 // link: http://localhost:3002/api/banners/:id
-
 router.put('/banners/:id', bannerController.updateBanner);
 // link: http://localhost:3002/api/banners/:id
 router.delete('/banners/:id', bannerController.deleteBanner);
