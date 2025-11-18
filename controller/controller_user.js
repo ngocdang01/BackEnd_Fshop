@@ -1,7 +1,8 @@
 const User = require("../model/model_user");
+const UserVoucher = require('../model/model_user_voucher');
+const Voucher = require('../model/model_voucher');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-// const { use } = require("react");
 
 // Đăng ký tài khoản mới
 exports.register = async (req, res) => {
@@ -27,9 +28,7 @@ exports.register = async (req, res) => {
       email,
       password: hashedPassword,
       role: "user",
-      avatar:
-        avatar ||
-        "https://i.pinimg.com/736x/bc/43/98/bc439871417621836a0eeea768d60944.jpg",
+      avatar: avatar || "https://i.pinimg.com/736x/bc/43/98/bc439871417621836a0eeea768d60944.jpg",
       phone: phone || "",
       address: address || "Chưa cập nhật",
       sex: sex || "Nam",
@@ -83,6 +82,13 @@ exports.login = async (req, res) => {
       );
 
       console.log("Login successful for user:", email);
+
+      // Tự động tặng voucher cho user mới đăng nhập
+            try {
+                await assignWelcomeVoucher(user._id);
+            } catch (voucherError) {
+                console.log('Error assigning welcome voucher:', voucherError.message);
+            }
 
       res.json({
         message: "Đăng nhập thành công",
@@ -395,4 +401,47 @@ exports.deleteUser = async (req, res) => {
 exports.logout = (req, res) => {
   // Chỉ trả về thông báo, clinet sẽ tự xóa token
   res.json({ message: "Đăng xuất thành công" });
+};
+
+// Tặng voucher khi đăng nhập
+const assignWelcomeVoucher = async (userId) => {
+    try {
+        // Tìm voucher FREESHIP
+        const voucher = await Voucher.findOne({ code: 'FREESHIP' });
+        
+        if (!voucher) {
+            console.log('FREESHIP voucher not found');
+            return;
+        }
+        const currentDate = new Date();
+        if (voucher.status !== 'active' || 
+            currentDate < voucher.startDate || 
+            currentDate > voucher.expireDate) {
+            console.log('FREESHIP voucher is not valid');
+            return;
+        }
+        // Kiểm tra user đã có voucher này chưa
+        const existingUserVoucher = await UserVoucher.findOne({
+            userId: userId,
+            voucherId: voucher._id
+        });
+
+        if (existingUserVoucher) {
+            console.log('User already has FREESHIP voucher');
+            return;
+        }
+        // Tạo user voucher mới
+        const userVoucher = new UserVoucher({
+            userId: userId,
+            voucherId: voucher._id,
+            source: 'system',
+            note: 'Tặng khi đăng nhập lần đầu'
+        });
+
+        await userVoucher.save();
+        console.log('Welcome voucher assigned successfully to user:', userId);
+        
+    } catch (error) {
+        console.error('Error assigning welcome voucher:', error);
+    }
 };
