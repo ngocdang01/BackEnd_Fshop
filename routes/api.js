@@ -26,6 +26,8 @@ router.post('/products/add', productController.createProduct);
 router.put('/products/:id', productController.updateProduct);    
 // link : http://localhost:3002/api/products/:id  // Xóa sản phẩm
 router.delete('/products/:id', productController.deleteProduct);
+// linl : http://localhost:3002/api/products/:id/stock
+router.put('/products/:id/stock', productController.updateStock);
 
 // Sale Product routes
 // link : http://localhost:3002/api/sale-products    // Lấy danh sách sản phẩm khuyến mãi
