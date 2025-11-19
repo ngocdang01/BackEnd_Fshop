@@ -98,18 +98,26 @@ const orderSchema = new Schema(
       type: String,
       required: true
     },
+    //Thêm status cho thanh toán VNPay
     status: {
-      type: String,
-      enum: [
-        'waiting',
-        'pending',
-        'confirmed',
-        'shipped',
-        'delivered',
-        'cancelled'
-      ],
-      default: 'waiting'
-    }
+    type: String,
+    enum: ['waiting','pending','confirmed','shipped','delivered','cancelled','paid','payment_failed'],
+    default: 'waiting'
+},
+   paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed', 'refunded', 'cancelled'],
+    default: 'pending'
+},
+
+paymentDetails: {
+    transactionId: String,
+    bankCode: String,
+    paymentTime: String,
+    amount: Number,
+    errorCode: String,
+    errorMessage: String
+},
   },
   {
     timestamps: true,

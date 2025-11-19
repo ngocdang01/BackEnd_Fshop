@@ -60,9 +60,19 @@ const paymentSchema = new mongoose.Schema({
     paymentDate: {
         type: Date,
         default: Date.now
-    }
+    },
+    vnpTransactionNo: { type: String, default: null },
+    vnpResponseCode: { type: String, default: null },
+    vnpMessage: { type: String, default: null }
+
 }, {
     timestamps: true
 });
+
+// Index
+paymentSchema.index({ userId: 1 });
+paymentSchema.index({ typePayments: 1 });
+paymentSchema.index({ status: 1 });
+paymentSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);
