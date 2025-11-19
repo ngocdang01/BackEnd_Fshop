@@ -8,7 +8,6 @@ const oauthController = require('../controller/controller_oauth');
 const productController = require('../controller/controller_product');
 const saleProductController = require('../controller/controller_sale_product');
 const bannerController = require('../controller/controller_banner');
-
 const favoriteController = require('../controller/controller_favorite');
 const cartController = require('../controller/controller_cart');
 const voucherController = require('../controller/controller_vouchers');
@@ -143,5 +142,11 @@ router.delete('/vouchers/:code', voucherController.deleteVoucher);
 // User-Voucher routes
 // link: http://localhost:3002/api/user-vouchers/assign
 router.post('/user-vouchers/assign', userVoucherController.assignVoucherToUser);
+
+// Admin tặng voucher cho user khi đăng nhập
+// link: http://localhost:3001/api/users/gift-voucher
+router.post('/users/gift-voucher', userController.giftVoucherToUser);
+// link: http://localhost:3001/api/users/gift-voucher-multiple
+router.post('/users/gift-voucher-multiple', userController.giftVoucherToMultipleUsers);
 
 module.exports = router;

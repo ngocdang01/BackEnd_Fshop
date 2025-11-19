@@ -445,3 +445,220 @@ const assignWelcomeVoucher = async (userId) => {
         console.error('Error assigning welcome voucher:', error);
     }
 };
+// Admin tặng voucher cho user
+exports.giftVoucherToUser = async (req, res) => {
+    try {
+        const { userId, voucherCode, source, note } = req.body;
+
+        // Validate required fields
+        if (!userId || !voucherCode || !source) {
+            return res.status(400).json({
+                success: false,
+                message: 'userId, voucherCode, and source are required'
+            });
+        }
+
+        // Check if user exists
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Find voucher by code
+        const voucher = await Voucher.findOne({ code: voucherCode.toUpperCase() });
+        if (!voucher) {
+            return res.status(404).json({
+                success: false,
+                message: 'Voucher not found'
+            });
+        }
+
+        // Check if voucher is active and valid
+        const currentDate = new Date();
+        if (voucher.status !== 'active') {
+            return res.status(400).json({
+                success: false,
+                message: 'Voucher is not active'
+            });
+        }
+
+        if (currentDate < voucher.startDate || currentDate > voucher.expireDate) {
+            return res.status(400).json({
+                success: false,
+                message: 'Voucher is not valid at this time'
+            });
+        }
+
+        // Check if user already has this voucher
+        const existingUserVoucher = await UserVoucher.findOne({
+            userId: userId,
+            voucherId: voucher._id
+        });
+
+        if (existingUserVoucher) {
+            return res.status(400).json({
+                success: false,
+                message: 'User already has this voucher'
+            });
+        }
+
+        // Check if user has reached the usage limit
+        const userVoucherCount = await UserVoucher.countDocuments({
+            userId: userId,
+            voucherId: voucher._id
+        });
+
+        if (userVoucherCount >= voucher.usageLimitPerUser) {
+            return res.status(400).json({
+                success: false,
+                message: 'User has reached the usage limit for this voucher'
+            });
+        }
+
+        // Create user voucher
+        const userVoucher = new UserVoucher({
+            userId: userId,
+            voucherId: voucher._id,
+            source: source,
+            note: note || ''
+        });
+
+        await userVoucher.save();
+        await userVoucher.populate('voucherId');
+
+        res.status(201).json({
+            success: true,
+            message: 'Voucher gifted successfully',
+            data: userVoucher
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Admin tặng voucher cho nhiều user
+exports.giftVoucherToMultipleUsers = async (req, res) => {
+    try {
+        const { userIds, voucherCode, source, note } = req.body;
+
+        // Validate required fields
+        if (!userIds || !Array.isArray(userIds) || userIds.length === 0 || !voucherCode || !source) {
+            return res.status(400).json({
+                success: false,
+                message: 'userIds (array), voucherCode, and source are required'
+            });
+        }
+
+        // Find voucher by code
+        const voucher = await Voucher.findOne({ code: voucherCode.toUpperCase() });
+        if (!voucher) {
+            return res.status(404).json({
+                success: false,
+                message: 'Voucher not found'
+            });
+        }
+
+        // Check if voucher is active and valid
+        const currentDate = new Date();
+        if (voucher.status !== 'active') {
+            return res.status(400).json({
+                success: false,
+                message: 'Voucher is not active'
+            });
+        }
+
+        if (currentDate < voucher.startDate || currentDate > voucher.expireDate) {
+            return res.status(400).json({
+                success: false,
+                message: 'Voucher is not valid at this time'
+            });
+        }
+
+        const results = {
+            success: [],
+            failed: []
+        };
+
+        // Process each user
+        for (const userId of userIds) {
+            try {
+                // Check if user exists
+                const user = await User.findById(userId);
+                if (!user) {
+                    results.failed.push({
+                        userId,
+                        reason: 'User not found'
+                    });
+                    continue;
+                }
+
+                // Check if user already has this voucher
+                const existingUserVoucher = await UserVoucher.findOne({
+                    userId: userId,
+                    voucherId: voucher._id
+                });
+
+                if (existingUserVoucher) {
+                    results.failed.push({
+                        userId,
+                        reason: 'User already has this voucher'
+                    });
+                    continue;
+                }
+
+                // Check if user has reached the usage limit
+                const userVoucherCount = await UserVoucher.countDocuments({
+                    userId: userId,
+                    voucherId: voucher._id
+                });
+
+                if (userVoucherCount >= voucher.usageLimitPerUser) {
+                    results.failed.push({
+                        userId,
+                        reason: 'User has reached the usage limit'
+                    });
+                    continue;
+                }
+
+                // Create user voucher
+                const userVoucher = new UserVoucher({
+                    userId: userId,
+                    voucherId: voucher._id,
+                    source: source,
+                    note: note || ''
+                });
+
+                await userVoucher.save();
+                results.success.push({
+                    userId,
+                    userVoucherId: userVoucher._id
+                });
+
+            } catch (error) {
+                results.failed.push({
+                    userId,
+                    reason: error.message
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Processed ${userIds.length} users`,
+            data: results
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
