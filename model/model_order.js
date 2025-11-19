@@ -150,6 +150,29 @@ orderSchema.pre('save', function (next) {
   }
   next();
 });
+// THÊM: Method để cập nhật trạng thái thanh toán
+orderSchema.methods.updatePaymentStatus = function(status, details = {}) {
+  this.paymentStatus = status;
+  this.updatedAt = new Date();
+  
+  if (details) {
+    this.paymentDetails = { ...this.paymentDetails, ...details };
+  }
+  
+  if (status === 'completed') {
+    this.status = 'waiting';
+  } else if (status === 'failed') {
+    this.status = 'payment_failed';
+  }
+  
+  return this.save();
+};
+
+//  THÊM: Static method để tìm đơn hàng theo order_code
+orderSchema.statics.findByOrderCode = function(orderCode) {
+  return this.findOne({ order_code: orderCode });
+};
+
 
 const Order = mongoose.model('order', orderSchema);
 module.exports = Order;
