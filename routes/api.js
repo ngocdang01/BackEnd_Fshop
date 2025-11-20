@@ -32,8 +32,12 @@ router.put('/products/:id/stock', productController.updateStock);
 // Sale Product routes
 // link : http://localhost:3002/api/sale-products    // Lấy danh sách sản phẩm khuyến mãi
 router.get('/sale-products', saleProductController.getAllSaleProducts);  
+// link: http://localhost:3002/api/sale-products/search
+router.get('/sale-products/search', saleProductController.searchSaleProducts);
 // link: http://localhost:3002/api/sale-products/category/:categoryCode       // Lấy sản phẩm khuyến mãi theo category_code
 router.get('/sale-products/category/:categoryCode', saleProductController.getSaleProductsByCategory);    
+// link: http://localhost:3002/api/sale-products/top-discount
+router.get('/sale-products/top-discount', saleProductController.getTopDiscountProducts);
 // link: http://localhost:3002/api/sale-products/:id        // Lấy sản phẩm KM theo ID
 router.get('/sale-products/:id', saleProductController.getSaleProductById);
 // link: http://localhost:3002/api/sale-products/add
@@ -42,6 +46,8 @@ router.post('/sale-products/add', saleProductController.createSaleProduct);     
 router.put('/sale-products/:id', saleProductController.updateSaleProduct);  
 // link : http://localhost:3002/api/sale-products/:id     // Xóa sản phẩm khuyến mãi
 router.delete('/sale-products/:id', saleProductController.deleteSaleProduct);
+// link: http://localhost:3002/api/sale-products/:id/discount-status
+router.put('/sale-products/:id/discount-status', saleProductController.updateDiscountStatus);
 
 
 // Product user
