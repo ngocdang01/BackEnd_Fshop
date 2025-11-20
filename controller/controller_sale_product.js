@@ -454,3 +454,93 @@ exports.updateDiscountStatus = async (req, res) => {
     });
   }
 };
+
+// Cập nhật số lượng đã bán khi có đơn hàng
+exports.updateSoldCount = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body;
+
+    if (!Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: 400,
+        message: "ID không hợp lệ",
+        data: null,
+      });
+    }
+
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "Số lượng phải lớn hơn 0",
+        data: null,
+      });
+    }
+
+    const objectId = new Types.ObjectId(id);
+    const saleProduct = await SaleProduct.findById(objectId);
+
+    if (!saleProduct) {
+      return res.status(404).json({
+        status: 404,
+        message: "Không tìm thấy sản phẩm khuyến mãi",
+        data: null,
+      });
+    }
+
+    // Kiểm tra xem có đủ hàng trong kho không
+    if (saleProduct.stock < quantity) {
+      return res.status(400).json({
+        status: 400,
+        message: "Không đủ hàng trong kho",
+        data: {
+          available: saleProduct.stock,
+          requested: quantity,
+        },
+      });
+    }
+
+    // Cập nhật số lượng đã bán và tồn kho
+    saleProduct.sold += quantity;
+    saleProduct.stock -= quantity;
+
+    const updatedSaleProduct = await saleProduct.save();
+
+    res.json({
+      status: 200,
+      message: "Cập nhật số lượng đã bán thành công",
+      data: updatedSaleProduct,
+    });
+  } catch (error) {
+    console.error("Update sold count error:", error);
+    res.status(500).json({
+      status: 500,
+      message: "Lỗi khi cập nhật số lượng đã bán",
+      error: error.message,
+    });
+  }
+};
+
+// Lấy sản phẩm bán chạy nhất
+exports.getBestSellingProducts = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+
+    const saleProducts = await SaleProduct.find()
+      .sort({ sold: -1 })
+      .limit(Number(limit));
+
+    res.json({
+      status: 200,
+      message: "Lấy sản phẩm bán chạy nhất thành công",
+      data: saleProducts,
+    });
+  } catch (error) {
+    console.error("Get best selling products error:", error);
+    res.status(500).json({
+      status: 500,
+      message: "Lỗi khi lấy sản phẩm bán chạy nhất",
+      error: error.message,
+    });
+  }
+};

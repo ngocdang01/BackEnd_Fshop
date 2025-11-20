@@ -28,6 +28,8 @@ router.put('/products/:id', productController.updateProduct);
 router.delete('/products/:id', productController.deleteProduct);
 // linl : http://localhost:3002/api/products/:id/stock
 router.put('/products/:id/stock', productController.updateStock);
+// linl : http://localhost:3002/api/products/:id/sold
+router.put('/products/:id/sold', productController.updateStock);
 
 // Sale Product routes
 // link : http://localhost:3002/api/sale-products    // Lấy danh sách sản phẩm khuyến mãi
@@ -48,6 +50,10 @@ router.put('/sale-products/:id', saleProductController.updateSaleProduct);
 router.delete('/sale-products/:id', saleProductController.deleteSaleProduct);
 // link: http://localhost:3002/api/sale-products/:id/discount-status
 router.put('/sale-products/:id/discount-status', saleProductController.updateDiscountStatus);
+// link: http://localhost:3002/api/sale-products/:id/sold
+router.put('/sale-products/:id/sold', saleProductController.updateSoldCount);
+// link: http://localhost:3002/api/sale-products/best-selling
+router.get('/sale-products/best-selling', saleProductController.getBestSellingProducts);
 
 
 // Product user
