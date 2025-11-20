@@ -461,6 +461,7 @@ exports.updateSoldCount = async (req, res) => {
     const { id } = req.params;
     const { quantity } = req.body;
 
+    // Validate ID
     if (!Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         status: 400,
@@ -469,10 +470,11 @@ exports.updateSoldCount = async (req, res) => {
       });
     }
 
-    if (!quantity || quantity <= 0) {
+    // Validate quantity
+    if (!quantity || quantity <= 0 || !Numbr.isInteger(quantity)) {
       return res.status(400).json({
         status: 400,
-        message: "Số lượng phải lớn hơn 0",
+        message: "Số lượng phải là số nguyên > 0",
         data: null,
       });
     }
@@ -488,23 +490,30 @@ exports.updateSoldCount = async (req, res) => {
       });
     }
 
-    // Kiểm tra xem có đủ hàng trong kho không
-    if (saleProduct.stock < quantity) {
+    // Update atomic để tránh race condition
+    const updatedSaleProduct = await SaleProduct.findOneAndUpdate(
+      {
+        _id: id,
+        stock: { $gte: quantity } // kiểm tra tồn kho ngay trong query
+      },
+      {
+        $inc: { sold: quantity, stock: -quantity }
+      },
+      { new: true }
+    );
+
+    // Nếu không tìm thấy hoặc không đủ hàng
+    if (!updatedSaleProduct) {
+      const product = await SaleProduct.findById(id);
       return res.status(400).json({
         status: 400,
         message: "Không đủ hàng trong kho",
         data: {
-          available: saleProduct.stock,
+          available: product?.stock || 0,
           requested: quantity,
         },
       });
     }
-
-    // Cập nhật số lượng đã bán và tồn kho
-    saleProduct.sold += quantity;
-    saleProduct.stock -= quantity;
-
-    const updatedSaleProduct = await saleProduct.save();
 
     res.json({
       status: 200,
@@ -525,10 +534,13 @@ exports.updateSoldCount = async (req, res) => {
 exports.getBestSellingProducts = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
+    limit = Number(limit);
 
-    const saleProducts = await SaleProduct.find()
+    if (!limit || limit <= 0) limit = 10;
+
+    const saleProducts = await SaleProduct.find({ sold: { $gt: 0 } })
       .sort({ sold: -1 })
-      .limit(Number(limit));
+      .limit(limit);
 
     res.json({
       status: 200,

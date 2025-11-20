@@ -324,9 +324,24 @@ exports.updateSoldQuantity = async (req, res) => {
             return res.status(400).json({ message: 'Số lượng đã bán không hợp lệ' });
         }
 
+        const total = product.stock + product.sold;
+
+        if (sold > total) {
+            return res.status(400).json({
+                message: `Số lượng đã bán không được vượt quá tổng số sản phẩm (${total})`
+            });
+        }
+
+        // Điều chỉnh stock theo sold mới
+        product.stock = total - sold;
         product.sold = sold;
+
         const updatedProduct = await product.save();
-        res.json({ message: 'Cập nhật số lượng đã bán thành công', product: updatedProduct });
+
+        res.json({ 
+          message: 'Cập nhật số lượng đã bán thành công',
+           product: updatedProduct 
+          });
     } catch (error) {
         console.error('Update sold quantity error:', error);
         res.status(500).json({ message: 'Lỗi khi cập nhật số lượng đã bán', error: error.message });
