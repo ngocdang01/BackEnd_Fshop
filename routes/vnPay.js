@@ -9,37 +9,58 @@ function sortObject(obj) {
   const sorted = {};
   const keys = Object.keys(obj).sort();
   keys.forEach((key) => {
-    sorted[key] = obj[key];
+   sorted[key] = obj[key];
   });
   return sorted;
 }
 
 // ✅ [GET] /vnpay/create_payment
-// Tạo link thanh toán VNPay từ orderCode
+// Tạo link thanh toán VNPay 
 router.get('/create_payment', (req, res) => {
-  try {
-    const { orderCode, amount } = req.query;
+   const { orderCode, amount } = req.query;
 
-    if (!orderCode || !amount) {
-      return res.status(400).json({
-        success: false,
-        message: 'Thiếu orderCode hoặc amount',
-      });
-    }
+  const tmnCode = "6P2DR0XB"; // Lấy từ cấu hình VNPAY
+  const secretKey = "GET28K94GCVBQOGQO95ANEG9FF6PR4YL";
+  const vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+  const returnUrl = `${process.env.API_URL_CONFIG}:${process.env.PORT}/vnpay/payment-result`;
 
-    res.json({
-      success: true,
-      message: 'API tạo link thanh toán đang phát triển',
-      received: { orderCode, amount },
-    });
-  } catch (error) {
-    console.error('❌ create_payment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi khi khởi tạo thanh toán',
-      error: error.message,
-    });
+  const ipAddr = req.ip;
+  const orderId = orderCode || moment().format("YYYYMMDDHHmmss");
+  const bankCode = req.query.bankCode || "NCB";
+  const createDate = moment().format("YYYYMMDDHHmmss");
+  const orderInfo = `Thanh_toan_don_hang_${orderCode}`;
+  const locale = req.query.language || "vn";
+  const currCode = "VND";
+
+  // Tạo tham số thanh toán
+  let vnp_Params = {
+    vnp_Version: "2.1.0",
+    vnp_Command: "pay",
+    vnp_TmnCode: tmnCode,
+    vnp_Locale: locale,
+    vnp_CurrCode: currCode,
+    vnp_TxnRef: orderId,
+    vnp_OrderInfo: orderInfo,
+    vnp_OrderType: "billpayment",
+    vnp_Amount: amount * 100,
+    vnp_ReturnUrl: returnUrl,
+    vnp_IpAddr: ipAddr,
+    vnp_CreateDate: createDate,
+  };
+
+  if (bankCode !== "") {
+    vnp_Params["vnp_BankCode"] = bankCode;
   }
+
+  vnp_Params = sortObject(vnp_Params);
+
+  const signData = qs.stringify(vnp_Params);
+  const hmac = crypto.createHmac("sha512", secretKey);
+  const signed = hmac.update(new Buffer.from(signData, "utf-8")).digest("hex");
+  vnp_Params["vnp_SecureHash"] = signed;
+
+  const paymentUrl = vnp_Url + "?" + qs.stringify(vnp_Params);
+  res.json({ paymentUrl });
 });
 
 // ✅ [GET] /vnpay/payment-result
