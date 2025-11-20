@@ -33,12 +33,20 @@ router.post('/products/add', productController.createProduct);
 router.put('/products/:id', productController.updateProduct);    
 // link : http://localhost:3002/api/products/:id  // Xóa sản phẩm
 router.delete('/products/:id', productController.deleteProduct);
+// linl : http://localhost:3002/api/products/:id/stock
+router.put('/products/:id/stock', productController.updateStock);
+// linl : http://localhost:3002/api/products/:id/sold
+router.put('/products/:id/sold', productController.updateSoldQuantity);
 
 // Sale Product routes
 // link : http://localhost:3002/api/sale-products    // Lấy danh sách sản phẩm khuyến mãi
 router.get('/sale-products', saleProductController.getAllSaleProducts);  
+// link: http://localhost:3002/api/sale-products/search
+router.get('/sale-products/search', saleProductController.searchSaleProducts);
 // link: http://localhost:3002/api/sale-products/category/:categoryCode       // Lấy sản phẩm khuyến mãi theo category_code
 router.get('/sale-products/category/:categoryCode', saleProductController.getSaleProductsByCategory);    
+// link: http://localhost:3002/api/sale-products/top-discount
+router.get('/sale-products/top-discount', saleProductController.getTopDiscountProducts);
 // link: http://localhost:3002/api/sale-products/:id        // Lấy sản phẩm KM theo ID
 router.get('/sale-products/:id', saleProductController.getSaleProductById);
 // link: http://localhost:3002/api/sale-products/add
@@ -47,6 +55,12 @@ router.post('/sale-products/add', saleProductController.createSaleProduct);     
 router.put('/sale-products/:id', saleProductController.updateSaleProduct);  
 // link : http://localhost:3002/api/sale-products/:id     // Xóa sản phẩm khuyến mãi
 router.delete('/sale-products/:id', saleProductController.deleteSaleProduct);
+// link: http://localhost:3002/api/sale-products/:id/discount-status
+router.put('/sale-products/:id/discount-status', saleProductController.updateDiscountStatus);
+// link: http://localhost:3002/api/sale-products/:id/sold
+router.put('/sale-products/:id/sold', saleProductController.updateSoldCount);
+// link: http://localhost:3002/api/sale-products/best-selling
+router.get('/sale-products/best-selling', saleProductController.getBestSellingProducts);
 
 
 // Product user
