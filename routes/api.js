@@ -130,6 +130,10 @@ router.put('/carts/upsert', cartController.upsertCart);
 // Voucher routes
 // link: http://localhost:3002/api/vouchers
 router.get('/vouchers', voucherController.getAllVouchers);
+// link: http://localhost:3002/api/vouchers/active
+router.get('/vouchers/active', voucherController.getActiveVouchers);
+// link: http://localhost:3002/api/vouchers/global
+router.get('/vouchers/global', voucherController.getGlobalVouchers);
 // link: http://localhost:3002/api/vouchers/:code
 router.get('/vouchers/:code', voucherController.getVoucherByCode);
 // link: http://localhost:3002/api/vouchers/add
@@ -142,6 +146,8 @@ router.delete('/vouchers/:code', voucherController.deleteVoucher);
 // User-Voucher routes
 // link: http://localhost:3002/api/user-vouchers/assign
 router.post('/user-vouchers/assign', userVoucherController.assignVoucherToUser);
+// link: http://localhost:3002/api/user-vouchers/user/:userId
+router.get('/user-vouchers/user/:userId', userVoucherController.getUserVouchers);
 
 // Admin tặng voucher cho user khi đăng nhập
 // link: http://localhost:3001/api/users/gift-voucher

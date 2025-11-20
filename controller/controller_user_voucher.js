@@ -1,6 +1,6 @@
-const UserVoucher = require('../model/model_user_voucher');
-const Voucher = require('../model/model_voucher');
-const User = require('../model/model_user');
+const UserVoucher = require("../model/model_user_voucher");
+const Voucher = require("../model/model_voucher");
+const User = require("../model/model_user");
 
 // Gán voucher cho người dùng
 const assignVoucherToUser = async (req, res) => {
@@ -27,8 +27,9 @@ const assignVoucherToUser = async (req, res) => {
     // Kiểm tra voucher tồn tại, trạng thái hợp lệ
     const voucher = await Voucher.findById(voucherId);
     if (!voucher) {
-      return res.status(404).json({ success: false, message: "Voucher not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Voucher not found" });
     }
 
     if (voucher.status !== "active") {
@@ -41,7 +42,9 @@ const assignVoucherToUser = async (req, res) => {
     // Kiểm tra thời gian hiệu lực của voucher
     const currentDate = new Date();
     if (currentDate < voucher.startDate || currentDate > voucher.expireDate) {
-      return res.status(400).json({ success: false, message: "Voucher is not valid at this time" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Voucher is not valid at this time" });
     }
 
     // Kiểm tra trùng lặp user_voucher
@@ -80,7 +83,54 @@ const assignVoucherToUser = async (req, res) => {
     });
   }
 };
+// Get user vouchers
+const getUserVouchers = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { used, active } = req.query;
 
+    let query = { userId: userId };
+    // Filter by used status
+    if (used !== undefined) {
+      query.used = used === "true";
+    }
+    // Filter by active vouchers only
+    if (active === "true") {
+      const currentDate = new Date();
+      const userVouchers = await UserVoucher.find(query).populate({
+        path: "voucherId",
+        match: {
+          status: "active",
+          startDate: { $lte: currentDate },
+          expireDate: { $gte: currentDate },
+        },
+      });
+
+      // Filter out vouchers where voucherId is null (inactive vouchers)
+      const activeVouchers = userVouchers.filter((uv) => uv.voucherId !== null);
+
+      return res.json({
+        success: true,
+        data: activeVouchers,
+      });
+    }
+
+    const userVouchers = await UserVoucher.find(query)
+      .populate("voucherId")
+      .sort({ assignedAt: -1 });
+
+    res.json({
+      success: true,
+      data: userVouchers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 module.exports = {
-    assignVoucherToUser
+  assignVoucherToUser,
+  getUserVouchers
 };

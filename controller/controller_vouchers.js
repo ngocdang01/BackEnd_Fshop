@@ -174,10 +174,58 @@ const deleteVoucher = async (req, res) => {
     }
 }
 
+// Get active vouchers
+const getActiveVouchers = async (req, res) => {
+    try {
+        const currentDate = new Date();
+        const vouchers = await Voucher.find({
+            status: 'active',
+            startDate: { $lte: currentDate },
+            expireDate: { $gte: currentDate },
+            $expr: { $lt: ["$usedCount", "$totalUsageLimit"] }
+        });
+
+        res.json({
+            success: true,
+            data: vouchers
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Get global vouchers
+const getGlobalVouchers = async (req, res) => {
+    try {
+        const currentDate = new Date();
+        const vouchers = await Voucher.find({
+            isGlobal: true,
+            status: 'active',
+            startDate: { $lte: currentDate },
+            expireDate: { $gte: currentDate },
+            $expr: { $lt: ["$usedCount", "$totalUsageLimit"] }
+        });
+
+        res.json({
+            success: true,
+            data: vouchers
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
 module.exports = {
     getAllVouchers,
     getVoucherByCode,
     createVoucher,
     updateVoucher,
-    deleteVoucher
+    deleteVoucher,
+    getActiveVouchers,
+    getGlobalVouchers
 };
