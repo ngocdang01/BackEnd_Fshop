@@ -16,7 +16,7 @@ const initializeNotificationSocket = (io) => {
     // Create new notification from client (optional)
     socket.on("new notification", async (notificationData) => {
       try {
-        const { userId, title, message, type, data: extra } = notificationData;
+        const { userId, title, message, type, data } = notificationData;
 
         if (!userId)
           return socket.emit("notification error", {
@@ -29,7 +29,7 @@ const initializeNotificationSocket = (io) => {
           message,
           type: type || "system",
           isRead: false,
-          data: extra || {},
+          data: data || {},
         });
 
         const savedNotification = await notification.save();

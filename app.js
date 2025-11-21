@@ -29,8 +29,10 @@ const io = require('socket.io')(server, {
 app.set('io', io);
 
 // ✔ Nạp socket handlers
+const initializeNotificationSocket = require('./socketHandlers/notificationHandlers');
 const initializeOrderSocket = require('./socketHandlers/orderStatus');
 initializeOrderSocket(io);
+initializeNotificationSocket(io);
 
 // View engine setup
 app.set("views", path.join(__dirname, "views"));
