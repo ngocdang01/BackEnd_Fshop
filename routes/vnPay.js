@@ -98,7 +98,7 @@ router.post("/create_order_and_payment", async (req, res) => {
             console.log("✅ Đơn hàng đã được tạo thành công:", orderData.order_code);
           } else {
             console.error("❌ Lỗi tạo đơn hàng:", data);
-            res.status(code).json(data);
+           return res.status(code).json(data);
           }
         }
       })
@@ -125,6 +125,60 @@ router.post("/create_order_and_payment", async (req, res) => {
     }
 
     console.log("✅ Đơn hàng đã được lưu vào DB:", savedOrder.order_code);
+
+    // Tạo link thanh toán VNPay
+    const finalTotal = orderData.finalTotal;
+
+    const tmnCode = "6P2DR0XB";
+    const secretKey = "GET28K94GCVBQOGQO95ANEG9FF6PR4YL";
+    const returnUrl = `${process.env.API_URL_CONFIG}:${process.env.PORT}/vnpay/payment-result`;
+    const vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+
+    const ipAddr = req.ip;
+    const orderId = order_code || orderData.order_code;
+    const bankCode = req.body.bankCode || "NCB";
+    const createDate = moment().format("YYYYMMDDHHmmss");
+    const orderInfo = `Thanh_toan_don_hang_${orderId}`;
+    const locale = req.body.language || "vn";
+    const currCode = "VND";
+
+    let vnp_Params = {
+      vnp_Version: "2.1.0",
+      vnp_Command: "pay",
+      vnp_TmnCode: tmnCode,
+      vnp_Locale: locale,
+      vnp_CurrCode: currCode,
+      vnp_TxnRef: orderId,
+      vnp_OrderInfo: orderInfo,
+      vnp_OrderType: "billpayment",
+      vnp_Amount: finalTotal * 100,
+      vnp_ReturnUrl: returnUrl,
+      vnp_IpAddr: ipAddr,
+      vnp_CreateDate: createDate,
+    };
+
+    if (bankCode !== "") {
+      vnp_Params["vnp_BankCode"] = bankCode;
+    }
+
+    vnp_Params = sortObject(vnp_Params);
+
+    const signData = qs.stringify(vnp_Params);
+    const hmac = crypto.createHmac("sha512", secretKey);
+    const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
+    vnp_Params["vnp_SecureHash"] = signed;
+
+    const paymentUrl = vnp_Url + "?" + qs.stringify(vnp_Params);
+
+    console.log("✅ Tạo link thanh toán thành công cho đơn hàng:", orderId);
+
+    return res.json({
+      success: true,
+      message: "Tạo đơn hàng và link thanh toán thành công",
+      order: orderData,
+      paymentUrl: paymentUrl
+    });
+
   } catch (error) {
     console.error("❌ create_order_and_payment error:", error);
     res.status(500).json({
@@ -134,6 +188,7 @@ router.post("/create_order_and_payment", async (req, res) => {
     });
   }
 });
+
 // ✅ [GET] /vnpay/payment-result
 // nhận callback khi thanh toán xong 
 //http://localhost:3002/vnpay/payment-result
