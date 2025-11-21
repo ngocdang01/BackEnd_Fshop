@@ -10,6 +10,7 @@ require("./model/db");
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 var apiRouter = require("./routes/api");
+const vnpayRoutes = require('./routes/vnPay');
 
 var app = express();
 
@@ -54,6 +55,7 @@ app.use((req, res, next) => {
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/api", apiRouter);
+app.use('/vnpay', vnpayRoutes);
 
 // 404
 app.use(function (req, res, next) {
