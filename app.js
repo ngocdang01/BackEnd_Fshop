@@ -55,6 +55,9 @@ app.use((req, res, next) => {
 // Routers
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+// upload file ảnh
+var uploadRouter = require("./routes/upload");
+app.use("/api", uploadRouter);
 app.use("/api", apiRouter);
 
 // 404
