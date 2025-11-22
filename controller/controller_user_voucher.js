@@ -29,7 +29,8 @@ const assignVoucherToUser = async (req, res) => {
     if (!voucher) {
       return res
         .status(404)
-        .json({ success: false, message: "Voucher not found" });
+        .json({ success: false, message: "Voucher not found"
+         });
     }
 
     if (voucher.status !== "active") {
@@ -42,9 +43,10 @@ const assignVoucherToUser = async (req, res) => {
     // Kiểm tra thời gian hiệu lực của voucher
     const currentDate = new Date();
     if (currentDate < voucher.startDate || currentDate > voucher.expireDate) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Voucher is not valid at this time" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "Voucher is not valid at this time"
+       });
     }
 
     // Kiểm tra trùng lặp user_voucher
@@ -62,6 +64,21 @@ const assignVoucherToUser = async (req, res) => {
         });
       }
     }
+  
+        // Check if user has reached the usage limit for this voucher
+        const userVoucherCount = await UserVoucher.countDocuments({
+            userId: userId,
+            voucherId: voucherId,
+            used: true
+        });
+
+        if (userVoucherCount >= voucher.usageLimitPerUser) {
+            return res.status(400).json({
+                success: false,
+                message: 'User has reached the usage limit for this voucher'
+            });
+        }
+  
     // Tạo bản ghi mới
     const userVoucher = new UserVoucher({
       userId: userId,
@@ -69,7 +86,10 @@ const assignVoucherToUser = async (req, res) => {
       source: source,
       note: note || "",
     });
+
     await userVoucher.save();
+
+    // Populate voucher details
     await userVoucher.populate("voucherId");
 
     res.status(201).json({
@@ -83,6 +103,7 @@ const assignVoucherToUser = async (req, res) => {
     });
   }
 };
+
 // Get user vouchers
 const getUserVouchers = async (req, res) => {
   try {
@@ -90,10 +111,12 @@ const getUserVouchers = async (req, res) => {
     const { used, active } = req.query;
 
     let query = { userId: userId };
+
     // Filter by used status
     if (used !== undefined) {
       query.used = used === "true";
     }
+    
     // Filter by active vouchers only
     if (active === "true") {
       const currentDate = new Date();

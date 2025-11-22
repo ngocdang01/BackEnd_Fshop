@@ -413,6 +413,8 @@ const assignWelcomeVoucher = async (userId) => {
             console.log('FREESHIP voucher not found');
             return;
         }
+
+        // Kiểm tra voucher có active và còn hiệu lực không
         const currentDate = new Date();
         if (voucher.status !== 'active' || 
             currentDate < voucher.startDate || 
@@ -420,6 +422,7 @@ const assignWelcomeVoucher = async (userId) => {
             console.log('FREESHIP voucher is not valid');
             return;
         }
+
         // Kiểm tra user đã có voucher này chưa
         const existingUserVoucher = await UserVoucher.findOne({
             userId: userId,
@@ -430,6 +433,20 @@ const assignWelcomeVoucher = async (userId) => {
             console.log('User already has FREESHIP voucher');
             return;
         }
+
+        
+        // Kiểm tra user có đạt giới hạn sử dụng chưa
+        const userVoucherCount = await UserVoucher.countDocuments({
+            userId: userId,
+            voucherId: voucher._id,
+            used: true
+        });
+
+        if (userVoucherCount >= voucher.usageLimitPerUser) {
+            console.log('User has reached usage limit for FREESHIP voucher');
+            return;
+        }
+
         // Tạo user voucher mới
         const userVoucher = new UserVoucher({
             userId: userId,
