@@ -174,6 +174,7 @@ const deleteVoucher = async (req, res) => {
     }
 };
 
+// Validate voucher
 const validateVoucher = async (req, res) => {
     try {
         const { code, order_value } = req.body;
@@ -184,6 +185,7 @@ const validateVoucher = async (req, res) => {
                 message: 'Voucher code and order value are required'
             });
         }
+        
         const voucher = await Voucher.findOne({ code: code.toUpperCase() });
 
         if (!voucher) {
@@ -192,14 +194,118 @@ const validateVoucher = async (req, res) => {
                 message: 'Voucher not found'
             });
         }
+        
+        const currentDate = new Date();
+        const isValidDate = currentDate >= voucher.startDate && currentDate <= voucher.expireDate;
+        const isValidUsage = voucher.usedCount < voucher.totalUsageLimit;
+        const isValidOrderValue = order_value >= voucher.minOrderAmount;
+        const isValidStatus = voucher.status === 'active';
+
+        const isValid = isValidDate && isValidUsage && isValidOrderValue && isValidStatus;
+
+        if (!isValid) {
+            return res.json({
+                success: false,
+                message: 'Voucher is not valid',
+                details: {
+                    isValidDate,
+                    isValidUsage,
+                    isValidOrderValue,
+                    isValidStatus
+                }
+            });
+        }
+
+        // Check if user has permission to use this voucher
+        if (userId) {
+            if (!voucher.isGlobal) {
+                // For non-global vouchers, check if user has this voucher assigned
+                const userVoucher = await UserVoucher.findOne({
+                    userId: userId,
+                    voucherId: voucher._id,
+                    used: false
+                });
+
+                if (!userVoucher) {
+                    return res.json({
+                        success: false,
+                        message: 'You do not have permission to use this voucher'
+                    });
+                }
+            } else {
+                // For global vouchers, check if user has reached the usage limit
+                const userVoucherCount = await UserVoucher.countDocuments({
+                    userId: userId,
+                    voucherId: voucher._id,
+                    used: true
+                });
+
+                if (userVoucherCount >= voucher.usageLimitPerUser) {
+                    return res.json({
+                        success: false,
+                        message: 'You have reached the usage limit for this voucher'
+                    });
+                }
+            }
+        }
+
+        // Calculate discount amount
+        let discountAmount = 0;
+        if (voucher.type === 'percentage') {
+            discountAmount = order_value * voucher.discount;
+            if (discountAmount > voucher.maxDiscount) {
+                discountAmount = voucher.maxDiscount;
+            }
+        } else if (voucher.type === 'fixed') {
+            discountAmount = voucher.discount;
+        } else if (voucher.type === 'shipping') {
+            discountAmount = order_value * voucher.discount;
+            if (discountAmount > voucher.maxDiscount) {
+                discountAmount = voucher.maxDiscount;
+            }
+        }
+
+        // Increment usedCount for the voucher
+        await Voucher.findByIdAndUpdate(
+            voucher._id,
+            { $inc: { usedCount: 1 } }
+        );
+
+        // Mark voucher as used for the user
+        if (userId) {
+            if (!voucher.isGlobal) {
+                // For non-global vouchers, mark the specific user voucher as used
+                await UserVoucher.findOneAndUpdate(
+                    { userId: userId, voucherId: voucher._id, used: false },
+                    { used: true, usedAt: currentDate }
+                );
+            } else {
+                // For global vouchers, create a new user voucher record to track usage
+                const userVoucher = new UserVoucher({
+                    userId: userId,
+                    voucherId: voucher._id,
+                    used: true,
+                    usedAt: currentDate,
+                    source: 'global_usage',
+                    note: 'Used from global voucher'
+                });
+                await userVoucher.save();
+            }
+        }
+
         return res.json({
             success: true,
-            message: 'Voucher found. Continue to validation next step.',
-            data: { voucher }
+            message: 'Voucher is valid',
+            data: { 
+                voucher,
+                discount_amount: discountAmount
+            }
         });
-
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ 
+            success: false, 
+            message: error.message 
+        });
     }
 };
 

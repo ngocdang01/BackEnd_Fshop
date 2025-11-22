@@ -156,6 +156,8 @@ router.put('/user-vouchers/:userVoucherId/use', userVoucherController.markVouche
 router.post('/user-vouchers/validate', userVoucherController.validateUserVoucher);
 // link: http://localhost:3001/api/user-vouchers/available/:userId
 router.get('/user-vouchers/available/:userId', userVoucherController.getAvailableVouchersForUser);
+// link: http://localhost:3001/api/user-vouchers/:userVoucherId
+router.delete('/user-vouchers/:userVoucherId', userVoucherController.removeUserVoucher);
 
 // Admin tặng voucher cho user khi đăng nhập
 // link: http://localhost:3001/api/users/gift-voucher

@@ -133,188 +133,230 @@ const getUserVouchers = async (req, res) => {
 
 // Mark voucher as used
 const markVoucherAsUsed = async (req, res) => {
-    try {
-        const { userVoucherId } = req.params;
+  try {
+    const { userVoucherId } = req.params;
 
-        const userVoucher = await UserVoucher.findById(userVoucherId)
-            .populate('voucherId');
+    const userVoucher = await UserVoucher.findById(userVoucherId).populate(
+      "voucherId"
+    );
 
-        if (!userVoucher) {
-            return res.status(404).json({
-                success: false,
-                message: 'User voucher not found'
-            });
-        }
-
-        if (userVoucher.used) {
-            return res.status(400).json({
-                success: false,
-                message: 'Voucher is already used'
-            });
-        }
-
-        // Check if voucher is still valid
-        const currentDate = new Date();
-        if (currentDate < userVoucher.voucherId.startDate || currentDate > userVoucher.voucherId.expireDate) {
-            return res.status(400).json({
-                success: false,
-                message: 'Voucher is expired or not yet active'
-            });
-        }
-
-        // Update user voucher
-        userVoucher.used = true;
-        userVoucher.usedAt = currentDate;
-        await userVoucher.save();
-
-        // Update voucher usage count
-        await Voucher.findByIdAndUpdate(
-            userVoucher.voucherId._id,
-            { $inc: { usedCount: 1 } }
-        );
-
-        res.json({
-            success: true,
-            data: userVoucher
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+    if (!userVoucher) {
+      return res.status(404).json({
+        success: false,
+        message: "User voucher not found",
+      });
     }
+
+    if (userVoucher.used) {
+      return res.status(400).json({
+        success: false,
+        message: "Voucher is already used",
+      });
+    }
+
+    // Check if voucher is still valid
+    const currentDate = new Date();
+    if (
+      currentDate < userVoucher.voucherId.startDate ||
+      currentDate > userVoucher.voucherId.expireDate
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Voucher is expired or not yet active",
+      });
+    }
+
+    // Update user voucher
+    userVoucher.used = true;
+    userVoucher.usedAt = currentDate;
+    await userVoucher.save();
+
+    // Update voucher usage count
+    await Voucher.findByIdAndUpdate(userVoucher.voucherId._id, {
+      $inc: { usedCount: 1 },
+    });
+
+    res.json({
+      success: true,
+      data: userVoucher,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 // Validate user voucher
 const validateUserVoucher = async (req, res) => {
-    try {
-        const { userVoucherId, orderValue } = req.body;
+  try {
+    const { userVoucherId, orderValue } = req.body;
 
-        if (!userVoucherId || !orderValue) {
-            return res.status(400).json({
-                success: false,
-                message: 'userVoucherId and orderValue are required'
-            });
-        }
-
-        const userVoucher = await UserVoucher.findById(userVoucherId)
-            .populate('voucherId');
-
-        if (!userVoucher) {
-            return res.status(404).json({
-                success: false,
-                message: 'User voucher not found'
-            });
-        }
-
-        if (userVoucher.used) {
-            return res.status(400).json({
-                success: false,
-                message: 'Voucher is already used'
-            });
-        }
-
-        const voucher = userVoucher.voucherId;
-
-        // Check if voucher is still valid
-        const currentDate = new Date();
-        const isValidDate = currentDate >= voucher.startDate && currentDate <= voucher.expireDate;
-        const isValidOrderValue = orderValue >= voucher.minOrderAmount;
-        const isValidStatus = voucher.status === 'active';
-
-        const isValid = isValidDate && isValidOrderValue && isValidStatus;
-
-        if (!isValid) {
-            return res.json({
-                success: false,
-                message: 'Voucher is not valid',
-                details: {
-                    isValidDate,
-                    isValidOrderValue,
-                    isValidStatus
-                }
-            });
-        }
-
-        // Calculate discount amount
-        let discountAmount = 0;
-        if (voucher.type === 'percentage') {
-            discountAmount = orderValue * voucher.discount;
-            if (discountAmount > voucher.maxDiscount) {
-                discountAmount = voucher.maxDiscount;
-            }
-        } else if (voucher.type === 'fixed') {
-            discountAmount = voucher.discount;
-        } else if (voucher.type === 'shipping') {
-            discountAmount = orderValue * voucher.discount;
-            if (discountAmount > voucher.maxDiscount) {
-                discountAmount = voucher.maxDiscount;
-            }
-        }
-
-        res.json({
-            success: true,
-            message: 'Voucher is valid',
-            data: {
-                userVoucher,
-                voucher,
-                discount_amount: discountAmount
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+    if (!userVoucherId || !orderValue) {
+      return res.status(400).json({
+        success: false,
+        message: "userVoucherId and orderValue are required",
+      });
     }
+
+    const userVoucher = await UserVoucher.findById(userVoucherId).populate(
+      "voucherId"
+    );
+
+    if (!userVoucher) {
+      return res.status(404).json({
+        success: false,
+        message: "User voucher not found",
+      });
+    }
+
+    if (userVoucher.used) {
+      return res.status(400).json({
+        success: false,
+        message: "Voucher is already used",
+      });
+    }
+
+    const voucher = userVoucher.voucherId;
+
+    // Check if voucher is still valid
+    const currentDate = new Date();
+    const isValidDate =
+      currentDate >= voucher.startDate && currentDate <= voucher.expireDate;
+    const isValidOrderValue = orderValue >= voucher.minOrderAmount;
+    const isValidStatus = voucher.status === "active";
+
+    const isValid = isValidDate && isValidOrderValue && isValidStatus;
+
+    if (!isValid) {
+      return res.json({
+        success: false,
+        message: "Voucher is not valid",
+        details: {
+          isValidDate,
+          isValidOrderValue,
+          isValidStatus,
+        },
+      });
+    }
+
+    // Calculate discount amount
+    let discountAmount = 0;
+    if (voucher.type === "percentage") {
+      discountAmount = orderValue * voucher.discount;
+      if (discountAmount > voucher.maxDiscount) {
+        discountAmount = voucher.maxDiscount;
+      }
+    } else if (voucher.type === "fixed") {
+      discountAmount = voucher.discount;
+    } else if (voucher.type === "shipping") {
+      discountAmount = orderValue * voucher.discount;
+      if (discountAmount > voucher.maxDiscount) {
+        discountAmount = voucher.maxDiscount;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Voucher is valid",
+      data: {
+        userVoucher,
+        voucher,
+        discount_amount: discountAmount,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 // Get available vouchers for user
 const getAvailableVouchersForUser = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { orderValue } = req.query;
+  try {
+    const { userId } = req.params;
+    const { orderValue } = req.query;
 
-        const currentDate = new Date();
+    const currentDate = new Date();
 
-        // Get user's unused vouchers
-        const userVouchers = await UserVoucher.find({
-            userId: userId,
-            used: false
-        }).populate({
-            path: 'voucherId',
-            match: {
-                status: 'active',
-                startDate: { $lte: currentDate },
-                expireDate: { $gte: currentDate }
-            }
-        });
+    // Get user's unused vouchers
+    const userVouchers = await UserVoucher.find({
+      userId: userId,
+      used: false,
+    }).populate({
+      path: "voucherId",
+      match: {
+        status: "active",
+        startDate: { $lte: currentDate },
+        expireDate: { $gte: currentDate },
+      },
+    });
 
-        // Filter valid vouchers
-        const validVouchers = userVouchers.filter(uv => uv.voucherId !== null);
+    // Filter valid vouchers
+    const validVouchers = userVouchers.filter((uv) => uv.voucherId !== null);
 
-        // If orderValue is provided, filter by minimum order amount
-        let availableVouchers = validVouchers;
-        if (orderValue) {
-            availableVouchers = validVouchers.filter(uv => 
-                uv.voucherId.minOrderAmount <= Number(orderValue)
-            );
-        }
-
-        res.json({
-            success: true,
-            data: availableVouchers
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+    // If orderValue is provided, filter by minimum order amount
+    let availableVouchers = validVouchers;
+    if (orderValue) {
+      availableVouchers = validVouchers.filter(
+        (uv) => uv.voucherId.minOrderAmount <= Number(orderValue)
+      );
     }
+
+    res.json({
+      success: true,
+      data: availableVouchers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
+
+// Remove user voucher
+const removeUserVoucher = async (req, res) => {
+  try {
+    const { userVoucherId } = req.params;
+
+    const userVoucher = await UserVoucher.findById(userVoucherId);
+
+    if (!userVoucher) {
+      return res.status(404).json({
+        success: false,
+        message: "User voucher not found",
+      });
+    }
+
+    if (userVoucher.used) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot remove used voucher",
+      });
+    }
+
+    await UserVoucher.findByIdAndDelete(userVoucherId);
+
+    res.json({
+      success: true,
+      message: "User voucher removed successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   assignVoucherToUser,
   getUserVouchers,
   markVoucherAsUsed,
   validateUserVoucher,
-  getAvailableVouchersForUser
+  getAvailableVouchersForUser,
+  removeUserVoucher,
 };
