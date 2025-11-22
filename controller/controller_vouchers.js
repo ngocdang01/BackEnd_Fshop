@@ -172,7 +172,36 @@ const deleteVoucher = async (req, res) => {
             message: error.message
         });
     }
-}
+};
+
+const validateVoucher = async (req, res) => {
+    try {
+        const { code, order_value } = req.body;
+
+        if (!code || !order_value) {
+            return res.status(400).json({
+                success: false,
+                message: 'Voucher code and order value are required'
+            });
+        }
+        const voucher = await Voucher.findOne({ code: code.toUpperCase() });
+
+        if (!voucher) {
+            return res.status(404).json({
+                success: false,
+                message: 'Voucher not found'
+            });
+        }
+        return res.json({
+            success: true,
+            message: 'Voucher found. Continue to validation next step.',
+            data: { voucher }
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
 // Get active vouchers
 const getActiveVouchers = async (req, res) => {
@@ -226,6 +255,7 @@ module.exports = {
     createVoucher,
     updateVoucher,
     deleteVoucher,
+    validateVoucher,
     getActiveVouchers,
     getGlobalVouchers
 };

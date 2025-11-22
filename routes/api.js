@@ -142,12 +142,16 @@ router.post('/vouchers/add', voucherController.createVoucher);
 router.put('/vouchers/:code', voucherController.updateVoucher);
 // link: http://localhost:3002/api/vouchers/:code
 router.delete('/vouchers/:code', voucherController.deleteVoucher);
+// link: http://localhost:3002/api/vouchers/validate
+router.post('/vouchers/validate', voucherController.validateVoucher);
 
 // User-Voucher routes
 // link: http://localhost:3002/api/user-vouchers/assign
 router.post('/user-vouchers/assign', userVoucherController.assignVoucherToUser);
 // link: http://localhost:3002/api/user-vouchers/user/:userId
 router.get('/user-vouchers/user/:userId', userVoucherController.getUserVouchers);
+// link: http://localhost:3001/api/user-vouchers/:userVoucherId/use
+router.put('/user-vouchers/:userVoucherId/use', userVoucherController.markVoucherAsUsed);
 // link: http://localhost:3001/api/user-vouchers/validate
 router.post('/user-vouchers/validate', userVoucherController.validateUserVoucher);
 // link: http://localhost:3001/api/user-vouchers/available/:userId

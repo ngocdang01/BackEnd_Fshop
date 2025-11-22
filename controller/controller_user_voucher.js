@@ -130,6 +130,60 @@ const getUserVouchers = async (req, res) => {
     });
   }
 };
+
+// Mark voucher as used
+const markVoucherAsUsed = async (req, res) => {
+    try {
+        const { userVoucherId } = req.params;
+
+        const userVoucher = await UserVoucher.findById(userVoucherId)
+            .populate('voucherId');
+
+        if (!userVoucher) {
+            return res.status(404).json({
+                success: false,
+                message: 'User voucher not found'
+            });
+        }
+
+        if (userVoucher.used) {
+            return res.status(400).json({
+                success: false,
+                message: 'Voucher is already used'
+            });
+        }
+
+        // Check if voucher is still valid
+        const currentDate = new Date();
+        if (currentDate < userVoucher.voucherId.startDate || currentDate > userVoucher.voucherId.expireDate) {
+            return res.status(400).json({
+                success: false,
+                message: 'Voucher is expired or not yet active'
+            });
+        }
+
+        // Update user voucher
+        userVoucher.used = true;
+        userVoucher.usedAt = currentDate;
+        await userVoucher.save();
+
+        // Update voucher usage count
+        await Voucher.findByIdAndUpdate(
+            userVoucher.voucherId._id,
+            { $inc: { usedCount: 1 } }
+        );
+
+        res.json({
+            success: true,
+            data: userVoucher
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
 // Validate user voucher
 const validateUserVoucher = async (req, res) => {
     try {
@@ -260,6 +314,7 @@ const getAvailableVouchersForUser = async (req, res) => {
 module.exports = {
   assignVoucherToUser,
   getUserVouchers,
+  markVoucherAsUsed,
   validateUserVoucher,
   getAvailableVouchersForUser
 };
