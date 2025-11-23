@@ -4,6 +4,7 @@ const SaleProduct = require('../model/model_sale_product');
 const Voucher = require('../model/model_voucher');
 const User = require('../model/model_user');
 const ProductSize = require('../model/model_product_size');
+const modelNotification = require('../model/model_notification');
 
 // Helper: Cập nhật tồn kho sản phẩm
 const updateProductStock = async (item, operation = 'decrease', source = 'unknown') => {
