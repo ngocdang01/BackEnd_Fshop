@@ -5,17 +5,19 @@ const auth = require('../middleware/auth');
 const userController = require("../controller/controller_user");
 const categoryController = require("../controller/controller_categorie");
 const oauthController = require('../controller/controller_oauth');
+const addressController = require('../controller/controller_address');
 const productController = require('../controller/controller_product');
 const saleProductController = require('../controller/controller_sale_product');
 const bannerController = require('../controller/controller_banner');
 const orderController = require('../controller/controller_order');
 const favoriteController = require('../controller/controller_favorite');
+const notificationController = require('../controller/controller_notification');
 const cartController = require('../controller/controller_cart');
 const voucherController = require('../controller/controller_vouchers');
 const userVoucherController = require('../controller/controller_user_voucher');
 const UserVoucher = require("../model/model_user_voucher");
 
-// User router
+
 // link : http://localhost:3002/api/
 
 // Product routes
@@ -62,8 +64,7 @@ router.put('/sale-products/:id/sold', saleProductController.updateSoldCount);
 // link: http://localhost:3002/api/sale-products/best-selling
 router.get('/sale-products/best-selling', saleProductController.getBestSellingProducts);
 
-
-// Product user
+// User routes
 // link : http://localhost:3002/api/register
 router.post("/register", userController.register);
 // link : http://localhost:3002/api/login
@@ -90,6 +91,56 @@ router.post('/reset-password', userController.resetPassword);
 router.post("/logout", userController.logout);
 
 
+// OAuth routes
+// link: http://localhost:3002/api/auth/google
+router.post('/auth/google', oauthController.googleAuth);
+// link: http://localhost:3002/api/auth/facebook
+router.post('/auth/facebook', oauthController.facebookFirebaseLogin);
+// link: http://localhost:3002/api/auth/link/google
+router.post('/auth/link/google', auth, oauthController.linkGoogleAccount);
+// link: http://localhost:3002/api/auth/link/facebook
+router.post('/auth/link/facebook', auth, oauthController.linkFacebookAccount);
+
+// Address routes
+// link: http://localhost:3001/api/addresses/user/:id_user
+router.get('/addresses/user/:id_user', addressController.getAddressesByUser);
+// link: http://localhost:3001/api/addresses/:id
+router.get('/addresses/:id', addressController.getAddressById);
+// link: http://localhost:3001/api/addresses
+router.post('/addresses', addressController.createAddress);
+// link: http://localhost:3001/api/addresses/:id
+router.put('/addresses/:id', addressController.updateAddress);
+// link: http://localhost:3001/api/addresses/:id
+router.delete('/addresses/:id', addressController.deleteAddress);
+// link: http://localhost:3001/api/addresses/:id/default
+router.put('/addresses/:id/default', addressController.setDefaultAddress);
+// link: http://localhost:3001/api/addresses/default/:id_user
+router.get('/addresses/default/:id_user', addressController.getDefaultAddress);
+
+// Order routes
+// link : http://localhost:3002/api/orders
+router.post('/orders', orderController.createOrder);
+// link: http://localhost:3002/api/orders
+router.get('/orders', orderController.getAllOrders);
+// link: http://localhost:3002/api/orders/:id
+router.get('/orders/:id', orderController.getOrderById);
+// link: http://localhost:3002/api/orders/user/:userId
+router.get('/orders/user/:userId', orderController.getOrdersByUserId);
+// link : http://localhost:3002/api/orders/:id/status
+router.put('/orders/:id/status', orderController.updateStatus);
+
+
+// thông báo
+// link: http://localhost:3001/api/notifications/add
+router.post('/notifications/add', notificationController.add);
+// link: http://localhost:3001/api/notifications/user/:userId
+router.get('/notifications/user/:userId', notificationController.getByUserId);
+// link: http://localhost:3001/api/notifications/read/:id
+router.put('/notifications/read/:id', notificationController.markAsRead);
+// link: http://localhost:3001/api/notifications/unread-count/:userId
+router.get('/notifications/unread-count/:userId', notificationController.getUnreadCount);
+
+
 // Category router
 // link : http://localhost:3002/api/categories
 router.get('/categories', categoryController.getAllCategories);
@@ -104,61 +155,6 @@ router.put('/categories/:id', categoryController.updateCategory);
 // link : http://localhost:3002/api/categories/:id
 router.delete('/categories/:id', categoryController.deleteCategory);
 
-// Banner routes
-// link: http://localhost:3002/api/banners
-router.get('/banners', bannerController.getAllBanners);
-// link: http://localhost:3002/api/banners/active
-router.get('/banners/active', bannerController.getActiveBanners);
-// link: http://localhost:3002/api/banners/:id
-router.get('/banners/:id', bannerController.getBannerById);
-// link: http://localhost:3002/api/banners
-router.post('/banners', bannerController.createBanner);
-// link: http://localhost:3002/api/banners/:id
-router.put('/banners/:id', bannerController.updateBanner);
-// link: http://localhost:3002/api/banners/:id
-router.delete('/banners/:id', bannerController.deleteBanner);
-// link: http://localhost:3002/api/banners/:id/toggle
-router.put('/banners/:id/toggle', bannerController.toggleBannerStatus);
-
-// Favorite routes
-
-// link: http://localhost:3002/api/favorites
-router.get('/favorites', favoriteController.getAllFavorites);
-// link: http://localhost:3002/api/favorites/:userId
-router.get('/favorites/:userId', favoriteController.getUserFavorites);
-// link: http://localhost:3002/api/favorites/add
-router.post('/favorites/add', favoriteController.addToFavorites);
-// link: http://localhost:3002/api/favorites/:userId/:productId
-router.delete('/favorites/:userId/:productId', favoriteController.removeFromFavorites);
-// link: http://localhost:3002/api/favorites/check/:userId/:productId
-router.get('/favorites/check/:userId/:productId', favoriteController.checkFavorite);
-
-// CART ROUTES
-
-// link: http://localhost:3002/api/carts/add
-router.post('/carts/add', cartController.addToCart);
-// link: http://localhost:3002/api/carts/:user_id
-router.get('/carts/:user_id', cartController.getCartByUserId);
-// link: http://localhost:3002/api/carts/upsert
-router.put('/carts/upsert', cartController.upsertCart);
-// link: http://localhost:3002/api/carts/:user_id/item
-router.put('/carts/:user_id/item', cartController.updateItemQuantity);
-// link: http://localhost:3002/api/carts/:user_id/item
-router.delete('/carts/:user_id/item', cartController.deleteItemFromCart);
-// link: http://localhost:3002/api/carts/:user_id
-router.delete('/carts/:user_id', cartController.deleteCartByUserId);
-
-// Order routes
-// link : http://localhost:3002/api/orders
-router.post('/orders', orderController.createOrder);
-// link: http://localhost:3002/api/orders
-router.get('/orders', orderController.getAllOrders);
-// link: http://localhost:3002/api/orders/:id
-router.get('/orders/:id', orderController.getOrderById);
-// link: http://localhost:3002/api/orders/user/:userId
-router.get('/orders/user/:userId', orderController.getOrdersByUserId);
-// link : http://localhost:3002/api/orders/:id/status
-router.put('/orders/:id/status', orderController.updateStatus);
 // Voucher routes
 // link: http://localhost:3002/api/vouchers
 router.get('/vouchers', voucherController.getAllVouchers);
@@ -196,5 +192,47 @@ router.delete('/user-vouchers/:userVoucherId', userVoucherController.removeUserV
 router.post('/users/gift-voucher', userController.giftVoucherToUser);
 // link: http://localhost:3001/api/users/gift-voucher-multiple
 router.post('/users/gift-voucher-multiple', userController.giftVoucherToMultipleUsers);
+
+// CART ROUTES
+// link: http://localhost:3002/api/carts/add
+router.post('/carts/add', cartController.addToCart);
+// link: http://localhost:3002/api/carts/:user_id
+router.get('/carts/:user_id', cartController.getCartByUserId);
+// link: http://localhost:3002/api/carts/upsert
+router.put('/carts/upsert', cartController.upsertCart);
+// link: http://localhost:3002/api/carts/:user_id/item
+router.put('/carts/:user_id/item', cartController.updateItemQuantity);
+// link: http://localhost:3002/api/carts/:user_id/item
+router.delete('/carts/:user_id/item', cartController.deleteItemFromCart);
+// link: http://localhost:3002/api/carts/:user_id
+router.delete('/carts/:user_id', cartController.deleteCartByUserId);
+
+// Favorite routes
+// link: http://localhost:3002/api/favorites
+router.get('/favorites', favoriteController.getAllFavorites);
+// link: http://localhost:3002/api/favorites/:userId
+router.get('/favorites/:userId', favoriteController.getUserFavorites);
+// link: http://localhost:3002/api/favorites/add
+router.post('/favorites/add', favoriteController.addToFavorites);
+// link: http://localhost:3002/api/favorites/:userId/:productId
+router.delete('/favorites/:userId/:productId', favoriteController.removeFromFavorites);
+// link: http://localhost:3002/api/favorites/check/:userId/:productId
+router.get('/favorites/check/:userId/:productId', favoriteController.checkFavorite);
+
+// Banner routes
+// link: http://localhost:3002/api/banners
+router.get('/banners', bannerController.getAllBanners);
+// link: http://localhost:3002/api/banners/active
+router.get('/banners/active', bannerController.getActiveBanners);
+// link: http://localhost:3002/api/banners/:id
+router.get('/banners/:id', bannerController.getBannerById);
+// link: http://localhost:3002/api/banners
+router.post('/banners', bannerController.createBanner);
+// link: http://localhost:3002/api/banners/:id
+router.put('/banners/:id', bannerController.updateBanner);
+// link: http://localhost:3002/api/banners/:id
+router.delete('/banners/:id', bannerController.deleteBanner);
+// link: http://localhost:3002/api/banners/:id/toggle
+router.put('/banners/:id/toggle', bannerController.toggleBannerStatus);
 
 module.exports = router;
