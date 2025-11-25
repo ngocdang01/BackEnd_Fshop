@@ -2,6 +2,9 @@ const { Router } = require('express');
 const crypto = require('crypto');
 const qs = require('querystring');
 const moment = require('moment');
+const Order = require('../model/model_order');
+const Product = require('../model/model_product');
+const SaleProduct = require('../model/model_sale_product');
 
 const router = Router();
 
@@ -192,15 +195,104 @@ router.post("/create_order_and_payment", async (req, res) => {
 // ✅ [GET] /vnpay/payment-result
 // nhận callback khi thanh toán xong 
 //http://localhost:3002/vnpay/payment-result
-router.get('/payment-result', (req, res) => {
-  res.send('<h2>Trang kết quả thanh toán VNPay đang phát triển...</h2>');
-});
-// ✅ API kiểm tra trạng thái đơn hàng 
-router.get("/check_payment", (req, res) => {
-  // Xác thực checksum, phản hồi "Thanh toán thành công" hoặc "Thất bại"
-  res.json({ message: "Thanh toán thành công hoặc thất bại" });
-});
+router.get('/payment-result', async  (req, res) => {
+  const query = req.query;
 
+  //  Check dữ liệu rỗng
+  if (!query.vnp_ResponseCode || Object.keys(query).length === 0) {
+    console.log("⚠️ Không có dữ liệu callback, có thể là fallback từ deeplink");
+     // Trả về JSON thay vì redirect để FE có thể xử lý
+    return res.json({
+      success: false,
+      status: "no_data",
+      message: "Không có dữ liệu callback",
+      data: null
+    });
+  }
+
+  //  Check thiếu trường bắt buộc
+  if (!query.vnp_ResponseCode || !query.vnp_Amount || !query.vnp_TxnRef) {
+    return res.json({
+      success: false,
+      message: "Thiếu dữ liệu thanh toán",
+      data: query
+    });
+  }
+
+  //  Validate chữ ký
+  const secretKey = "GET28K94GCVBQOGQO95ANEG9FF6PR4YL";
+  const vnp_SecureHash = query.vnp_SecureHash;
+
+  delete query.vnp_SecureHash;
+
+  const signData = qs.stringify(query);
+  const checkSum = crypto.createHmac("sha512", secretKey).update(signData).digest("hex");
+  console.log("VNPay callback data:", query);
+
+    if (vnp_SecureHash === checkSum) {
+     const orderCode = query.vnp_OrderInfo.replace("Thanh_toan_don_hang_", "");
+     console.log("🔍 Tìm kiếm đơn hàng với order_code:", orderCode);
+     
+     // Kiểm tra đơn hàng có tồn tại không trước khi cập nhật
+     const existingOrder = await Order.findOne({ order_code: orderCode });
+     if (!existingOrder) {
+       console.error(" Không tìm thấy đơn hàng với order_code:", orderCode);
+       console.log(" Danh sách đơn hàng trong DB:");
+       const allOrders = await Order.find({}, { order_code: 1, createdAt: 1 }).limit(10);
+       console.log(allOrders);
+       
+       return res.redirect(`coolmate://payment-result?status=failed&message=OrderNotFound&orderId=${orderCode}`);
+     }
+     
+     console.log(" Tìm thấy đơn hàng:", existingOrder.order_code, "Status:", existingOrder.status);
+
+  
+
+  // Thanh toán thành công
+  if (responseCode === "00") {
+    await Order.findOneAndUpdate(
+      { order_code: orderCode },
+      {
+        paymentStatus: "completed",
+        status: "confirmed",
+        paymentDetails: {
+          transactionId: query.vnp_TransactionNo,
+          bankCode: query.vnp_BankCode,
+          paymentTime: query.vnp_PayDate,
+          amount: query.vnp_Amount / 100
+        }
+      }
+    );
+
+    return res.json({
+      success: true,
+      message: "Thanh toán thành công",
+      orderCode
+    });
+  }
+
+  // Thanh toán thất bại
+  await Order.findOneAndUpdate(
+    { order_code: orderCode },
+    {
+      paymentStatus: "failed",
+      status: "payment_failed",
+      paymentDetails: {
+        errorCode: responseCode,
+        errorMessage: query.vnp_Message || "Thanh toán thất bại"
+      }
+    }
+  );
+
+  return res.json({
+    success: false,
+    message: "Thanh toán thất bại",
+    errorCode: responseCode
+  });
+});
+// // ✅ API kiểm tra trạng thái đơn hàng 
+// router.get("/check_payment", (req, res) => {
+// });
 // ✅ [GET] /vnpay/check_order_status
 // Kiểm tra trạng thái đơn hàng 
 router.get('/check_order_status', (req, res) => {
