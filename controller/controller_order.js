@@ -465,8 +465,8 @@ confirmCODPayment: async (req, res) => {
   }
 },
 
-
-
 };
 
 module.exports = orderController;
+// Helper export
+module.exports.updateProductStock = updateProductStock;

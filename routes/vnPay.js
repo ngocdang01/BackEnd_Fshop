@@ -248,9 +248,10 @@ router.get('/payment-result', async  (req, res) => {
 
   
 
-  // Thanh toán thành công
   if (responseCode === "00") {
-    await Order.findOneAndUpdate(
+    try {
+       //  Cập nhật đơn hàng từ order_code
+       const updatedOrder = await Order.findOneAndUpdate(
       { order_code: orderCode },
       {
          status: 'confirmed', 
@@ -268,6 +269,52 @@ router.get('/payment-result', async  (req, res) => {
     );
       console.log("✅ Cập nhật đơn hàng thành công:", orderCode);
 
+       // CẬP NHẬT TỒN KHO NGAY KHI THANH TOÁN THÀNH CÔNG
+      console.log(`🔄 Cập nhật tồn kho cho đơn hàng VNPay: ${orderCode}`);
+         
+      // Import helper function từ controller_order
+      const orderController = require('../controller/controller_order');
+
+      for (const item of updatedOrder.items) {
+       // Sử dụng helper function để cập nhật tồn kho
+      const success = await orderController.updateProductStock(item, 'decrease', 'VNPay');
+      if (!success) {
+        console.error(`❌ Không thể cập nhật tồn kho cho sản phẩm ID: ${item.id_product}`);
+      }
+    }
+    
+    // Gửi socket notification 
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(updatedOrder.userId.toString()).emit
+        ('orderStatusUpdated', {
+          orderId: updatedOrder._id,
+          status: 'confirmed',
+          message: 'Thanh toán thành công'
+        });
+      }
+     } catch (socketError) {
+      console.log("Socket notification error:", socketError.message);
+     }
+     // Lưu kết quả thanh toán vào cache để FE có thể truy cập
+     const amount = query.vnp_Amount / 100;
+         const paymentResult = {
+           status: 'success',
+           orderId: orderCode,
+           amount: amount,
+           transactionId: query.vnp_TransactionNo,
+           timestamp: new Date().toISOString()
+         };
+         
+         // Lưu vào global cache 
+         if (!global.paymentResults) global.paymentResults = {};
+         global.paymentResults[orderCode] = paymentResult;
+
+    } catch (updateError) {
+         console.error("❌ Lỗi cập nhật đơn hàng:", updateError);
+         return res.redirect(`coolmate://payment-result?status=failed&message=UpdateError&orderId=${orderCode}`);
+       }
   }
   else {
     try {
