@@ -28,8 +28,9 @@ const voucherSchema = new db.mongoose.Schema({
     },
     type: {
         type: String,
-        required: true,
-        enum: ['fixed', 'shipping', 'percentage']
+        enum: ['shipping'],
+        default: "shipping",
+        required: true
     },
     minOrderAmount: {
         type: Number,
