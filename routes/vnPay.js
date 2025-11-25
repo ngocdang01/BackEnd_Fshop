@@ -253,42 +253,44 @@ router.get('/payment-result', async  (req, res) => {
     await Order.findOneAndUpdate(
       { order_code: orderCode },
       {
-        paymentStatus: "completed",
-        status: "confirmed",
-        paymentDetails: {
-          transactionId: query.vnp_TransactionNo,
-          bankCode: query.vnp_BankCode,
-          paymentTime: query.vnp_PayDate,
-          amount: query.vnp_Amount / 100
+         status: 'confirmed', 
+         updated_at: new Date(),
+         paymentStatus: 'completed',
+         paymentMethod: 'vnpay',
+         paymentDetails: {
+         transactionId: query.vnp_TransactionNo,
+         bankCode: query.vnp_BankCode,
+         paymentTime: query.vnp_PayDate,
+         amount: query.vnp_Amount / 100
         }
-      }
+      },
+      { new: true }
     );
+      console.log("✅ Cập nhật đơn hàng thành công:", orderCode);
 
-    return res.json({
-      success: true,
-      message: "Thanh toán thành công",
-      orderCode
-    });
   }
-
-  // Thanh toán thất bại
-  await Order.findOneAndUpdate(
-    { order_code: orderCode },
-    {
-      paymentStatus: "failed",
-      status: "payment_failed",
+  else {
+    try {
+      await Order.findOneAndUpdate(
+      { order_code: orderCode },
+      {
+      status: 'Thanh toán thất bại',
+      updated_at: new Date(),
+      paymentStatus: 'failed',
       paymentDetails: {
-        errorCode: responseCode,
-        errorMessage: query.vnp_Message || "Thanh toán thất bại"
+        errorCode: query.vnp_ResponseCode,
+        errorMessage: query.vnp_Message || 'Thanh toán thất bại'
       }
-    }
+     }
   );
-
-  return res.json({
-    success: false,
-    message: "Thanh toán thất bại",
-    errorCode: responseCode
-  });
+} catch (updateError) {
+  console.error("❌ Lỗi cập nhật trạng thái thất bại:", updateError);
+}
+  } 
+}else {
+     // ✅ Redirect về deeplink khi hash không hợp lệ
+     return res.redirect(`coolmate://payment-result?status=failed&message=InvalidHash`);
+   }
 });
 // // ✅ API kiểm tra trạng thái đơn hàng 
 // router.get("/check_payment", (req, res) => {
