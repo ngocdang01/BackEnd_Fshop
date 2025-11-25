@@ -407,10 +407,10 @@ exports.logout = (req, res) => {
 const assignWelcomeVoucher = async (userId) => {
     try {
         // Tìm voucher FREESHIP
-        const voucher = await Voucher.findOne({ code: 'FREESHIP' });
+        const voucher = await Voucher.findOne({ code: 'FREESHIP', type: "shipping" });
         
         if (!voucher) {
-            console.log('FREESHIP voucher not found');
+            console.log('Không tìm thấy voucher FREESHIP');
             return;
         }
 
@@ -419,47 +419,48 @@ const assignWelcomeVoucher = async (userId) => {
         if (voucher.status !== 'active' || 
             currentDate < voucher.startDate || 
             currentDate > voucher.expireDate) {
-            console.log('FREESHIP voucher is not valid');
+            console.log('Voucher FREESHIP không hợp lệ');
             return;
         }
 
         // Kiểm tra user đã có voucher này chưa
         const existingUserVoucher = await UserVoucher.findOne({
-            userId: userId,
-            voucherId: voucher._id
+            userId,
+            voucherId: voucher._id,
+            used: false
         });
 
         if (existingUserVoucher) {
-            console.log('User already has FREESHIP voucher');
+            console.log('Người dùng đã sở hữu voucher FREESHIP rồi');
             return;
         }
 
         
         // Kiểm tra user có đạt giới hạn sử dụng chưa
         const userVoucherCount = await UserVoucher.countDocuments({
-            userId: userId,
+            userId,
             voucherId: voucher._id,
             used: true
         });
 
         if (userVoucherCount >= voucher.usageLimitPerUser) {
-            console.log('User has reached usage limit for FREESHIP voucher');
+            console.log('Người dùng đã sử dụng hết số lần cho phép đối với voucher FREESHIP');
             return;
         }
 
         // Tạo user voucher mới
         const userVoucher = new UserVoucher({
-            userId: userId,
+            userId,
             voucherId: voucher._id,
             source: 'system',
             note: 'Tặng khi đăng nhập lần đầu'
         });
 
         await userVoucher.save();
-        console.log('Welcome voucher assigned successfully to user:', userId);
+        console.log('Tặng (gán) voucher Welcome cho người dùng thành công:', userId);
         
-    } catch (error) {
-        console.error('Error assigning welcome voucher:', error);
+    } catch (err) {
+        console.error('Lỗi khi gán (tặng) voucher Welcome cho người dùng:', err.message);
     }
 };
 // Admin tặng voucher cho user
@@ -467,95 +468,72 @@ exports.giftVoucherToUser = async (req, res) => {
     try {
         const { userId, voucherCode, source, note } = req.body;
 
-        // Validate required fields
-        if (!userId || !voucherCode || !source) {
-            return res.status(400).json({
-                success: false,
-                message: 'userId, voucherCode, and source are required'
-            });
-        }
-
-        // Check if user exists
         const user = await User.findById(userId);
         if (!user) {
-            return res.status(404).json({
+            return res.status(400).json({
                 success: false,
-                message: 'User not found'
+                message: 'Không tìm thấy người dùng'
             });
         }
-
-        // Find voucher by code
         const voucher = await Voucher.findOne({ code: voucherCode.toUpperCase() });
-        if (!voucher) {
-            return res.status(404).json({
-                success: false,
-                message: 'Voucher not found'
-            });
-        }
-
-        // Check if voucher is active and valid
+        if (!voucher) return res.status(404).json({ success: false, message: "Không tìm thấy Voucher" });
+        
         const currentDate = new Date();
-        if (voucher.status !== 'active') {
-            return res.status(400).json({
-                success: false,
-                message: 'Voucher is not active'
-            });
-        }
-
-        if (currentDate < voucher.startDate || currentDate > voucher.expireDate) {
-            return res.status(400).json({
-                success: false,
-                message: 'Voucher is not valid at this time'
-            });
-        }
+        if (
+            voucher.status !== "active" ||
+            currentDate < voucher.startDate ||
+            currentDate > voucher.expireDate
+        ) return res.status(400).json({ success: false, message: "Voucher hợp lệ" });
 
         // Check if user already has this voucher
         const existingUserVoucher = await UserVoucher.findOne({
-            userId: userId,
-            voucherId: voucher._id
+            userId,
+            voucherId: voucher._id,
+            used: false
         });
 
         if (existingUserVoucher) {
             return res.status(400).json({
                 success: false,
-                message: 'User already has this voucher'
+                message: 'Người dùng đã sở hữu voucher này rồi'
             });
         }
 
         // Check if user has reached the usage limit
         const userVoucherCount = await UserVoucher.countDocuments({
-            userId: userId,
-            voucherId: voucher._id
+            userId,
+            voucherId: voucher._id,
+            used: true
         });
 
         if (userVoucherCount >= voucher.usageLimitPerUser) {
             return res.status(400).json({
                 success: false,
-                message: 'User has reached the usage limit for this voucher'
+                message: 'Người dùng đã sử dụng hết số lần cho phép đối với voucher này'
             });
         }
 
         // Create user voucher
         const userVoucher = new UserVoucher({
-            userId: userId,
+            userId,
             voucherId: voucher._id,
-            source: source,
-            note: note || ''
+            source,
+            note: note || ""
         });
 
         await userVoucher.save();
         await userVoucher.populate('voucherId');
 
-        res.status(201).json({
+        res.json({
             success: true,
-            message: 'Voucher gifted successfully',
+            message: 'Tặng (gửi) voucher thành công',
             data: userVoucher
         });
 
-    } catch (error) {
+    } catch (err) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: err.message
         });
     }
 };
@@ -565,43 +543,23 @@ exports.giftVoucherToMultipleUsers = async (req, res) => {
     try {
         const { userIds, voucherCode, source, note } = req.body;
 
-        // Validate required fields
-        if (!userIds || !Array.isArray(userIds) || userIds.length === 0 || !voucherCode || !source) {
-            return res.status(400).json({
-                success: false,
-                message: 'userIds (array), voucherCode, and source are required'
-            });
-        }
-
-        // Find voucher by code
         const voucher = await Voucher.findOne({ code: voucherCode.toUpperCase() });
         if (!voucher) {
             return res.status(404).json({
                 success: false,
-                message: 'Voucher not found'
+                message: 'Không tìm thấy voucher'
             });
         }
 
-        // Check if voucher is active and valid
         const currentDate = new Date();
-        if (voucher.status !== 'active') {
-            return res.status(400).json({
-                success: false,
-                message: 'Voucher is not active'
-            });
-        }
+        if (
+            voucher.status !== "active" ||
+            currentDate < voucher.startDate ||
+            currentDate > voucher.expireDate
+        ) return res.status(400).json({ success: false, message: "Voucher không hợp lệ" });
 
-        if (currentDate < voucher.startDate || currentDate > voucher.expireDate) {
-            return res.status(400).json({
-                success: false,
-                message: 'Voucher is not valid at this time'
-            });
-        }
-
-        const results = {
-            success: [],
-            failed: []
-        };
+        let success = [];
+        let failed = [];
 
         // Process each user
         for (const userId of userIds) {
@@ -609,73 +567,55 @@ exports.giftVoucherToMultipleUsers = async (req, res) => {
                 // Check if user exists
                 const user = await User.findById(userId);
                 if (!user) {
-                    results.failed.push({
+                    failed.push({
                         userId,
-                        reason: 'User not found'
-                    });
-                    continue;
-                }
-
-                // Check if user already has this voucher
-                const existingUserVoucher = await UserVoucher.findOne({
-                    userId: userId,
-                    voucherId: voucher._id
-                });
-
-                if (existingUserVoucher) {
-                    results.failed.push({
-                        userId,
-                        reason: 'User already has this voucher'
+                        reason: 'Không tìm thấy người dùng'
                     });
                     continue;
                 }
 
                 // Check if user has reached the usage limit
                 const userVoucherCount = await UserVoucher.countDocuments({
-                    userId: userId,
+                    userId,
                     voucherId: voucher._id
                 });
 
                 if (userVoucherCount >= voucher.usageLimitPerUser) {
-                    results.failed.push({
+                    failed.push({
                         userId,
-                        reason: 'User has reached the usage limit'
+                        reason: 'Người dùng đã sử dụng hết số lần cho phép'
                     });
                     continue;
                 }
 
                 // Create user voucher
                 const userVoucher = new UserVoucher({
-                    userId: userId,
+                    userId,
                     voucherId: voucher._id,
                     source: source,
-                    note: note || ''
+                    note: note || ""
                 });
 
                 await userVoucher.save();
-                results.success.push({
-                    userId,
-                    userVoucherId: userVoucher._id
-                });
+                success.push({ userId });
 
-            } catch (error) {
-                results.failed.push({
+            } catch (err) {
+                failed.push({
                     userId,
-                    reason: error.message
+                    reason: err.message
                 });
             }
         }
 
         res.json({
             success: true,
-            message: `Processed ${userIds.length} users`,
-            data: results
+            data: { success, failed }
         });
 
-    } catch (error) {
+    } catch (err) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: err.message
         });
     }
 };
