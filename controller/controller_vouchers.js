@@ -4,15 +4,15 @@ const Voucher = require('../model/model_voucher');
 // Lấy tất cả voucher
 const getAllVouchers = async (req, res) => {
     try {
-        const vouchers = await Voucher.find();
+        const vouchers = await Voucher.find().sort({ createdAt: -1 });
         res.json({
             success: true,
             data: vouchers
         });
-    } catch (error) {
+    } catch (err) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: err.message
         });
     }
 };
@@ -20,13 +20,13 @@ const getAllVouchers = async (req, res) => {
 // Lấy chi tiết voucher
 const getVoucherByCode = async (req, res) => {
     try {
-        const { code } = req.params;
-        const voucher = await Voucher.findOne({ code: code.toUpperCase() });
+        const code = req.params.code.toUpperCase();
+        const voucher = await Voucher.findOne({ code });
 
         if (!voucher) {
             return res.status(404).json({
                 success: false,
-                message: 'Voucher not found'
+                message: 'Không tìm voucher'
             });
         }
 
@@ -34,10 +34,10 @@ const getVoucherByCode = async (req, res) => {
             success: true,
             data: voucher
         });
-    } catch (error) {
+    } catch (err) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: err.message
         });
     }
 }
@@ -51,7 +51,6 @@ const createVoucher = async (req, res) => {
             description,
             discount,
             maxDiscount,
-            type,
             minOrderAmount,
             startDate,
             expireDate,
@@ -61,56 +60,36 @@ const createVoucher = async (req, res) => {
             isGlobal
         } = req.body;
 
+        // Check trùng code
+        const exists = await Voucher.findOne({ code: code.toUpperCase() });
+        if (exists) return res.status(400).json({ success: false, message: "Mã voucher đã tồn tại" });
 
-        const voucherData = {
-            code: code ? code.toUpperCase() : null,
+        const voucher = new Voucher({
+            code: code.toUpperCase(),
             label,
             description,
-            discount: Number(discount),
-            maxDiscount: Number(maxDiscount),
-            type,
-            minOrderAmount: Number(minOrderAmount),
-            startDate: new Date(startDate),
-            expireDate: new Date(expireDate),
-            usageLimitPerUser: Number(usageLimitPerUser),
-            totalUsageLimit: Number(totalUsageLimit),
+            type: "shipping", // 🔥 CHỈ CHO FREESHIP
+            discount,
+            maxDiscount,
+            minOrderAmount,
+            startDate,
+            expireDate,
+            usageLimitPerUser,
+            totalUsageLimit,
             createdBy,
-            isGlobal: Boolean(isGlobal),
-            usedCount: 0,
-            status: 'active'
-        };
-
-        // Validate required fields
-        if (!voucherData.code || !voucherData.label || !voucherData.description || 
-            !voucherData.discount || !voucherData.maxDiscount || !voucherData.type || 
-            !voucherData.minOrderAmount || !voucherData.startDate || !voucherData.expireDate || 
-            !voucherData.usageLimitPerUser || !voucherData.totalUsageLimit || !voucherData.createdBy) {
-            return res.status(400).json({
-                success: false,
-                message: 'All fields are required'
-            });
-        }
-
-        // Check if voucher code already exists
-        const existingVoucher = await Voucher.findOne({ code: voucherData.code });
-        if (existingVoucher) {
-            return res.status(400).json({
-                success: false,
-                message: 'Voucher code already exists'
-            });
-        }
-
-        const voucher = new Voucher(voucherData);
+            isGlobal
+        });
         await voucher.save();
 
-        res.status(201).json({
+        res.json({
             success: true,
+            message: "Tạo voucher thành công",
             data: voucher
         });
-    } catch (error) {
+    } catch (err) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: err.message
         });
     }
 };
@@ -123,6 +102,7 @@ const updateVoucher = async (req, res) => {
 
         // Don't allow updating code
         delete updateData.code;
+        delete updateData.type; // bat buoc freeship
 
         const voucher = await Voucher.findOneAndUpdate(
             { code: code.toUpperCase() },
@@ -133,13 +113,114 @@ const updateVoucher = async (req, res) => {
         if (!voucher) {
             return res.status(404).json({
                 success: false,
-                message: 'Voucher not found'
+                message: 'Không tìm thấy voucher"'
             });
         }
 
         res.json({
             success: true,
             data: voucher
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// Xóa voucher
+const deleteVoucher = async (req, res) => {
+    try {
+        const code = req.params.code.toUpperCase();
+        const voucher = await Voucher.findOneAndDelete({ code });
+
+        if (!voucher) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy voucher"'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Voucher deleted successfully'
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+// Validate voucher
+const validateVoucher = async (req, res) => {
+    try {
+        const { code, orderAmount, shippingFee  } = req.body;
+
+        const voucher = await Voucher.findOne({ code: code.toUpperCase() });
+
+        if (!voucher) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy voucher"'
+            });
+        }
+        
+        const currentDate = new Date();
+
+        if (voucher.status !== "active")
+            return res.status(400).json({ success: false, message: "Voucher không hoạt động" });
+
+        if (currentDate < voucher.startDate)
+            return res.status(400).json({ success: false, message: "Voucher chưa bắt đầu" });
+
+        if (currentDate > voucher.expireDate)
+            return res.status(400).json({ success: false, message: "Voucher đã hết hạn" });
+
+        if (voucher.usedCount >= voucher.totalUsageLimit)
+            return res.status(400).json({ success: false, message: "Voucher đã đạt đến giới hạn sử dụng" });
+
+        if (orderAmount < voucher.minOrderAmount)
+            return res.status(400).json({
+                success: false,
+                message: `Order must reach ${voucher.minOrderAmount}đ`
+            });
+
+        // 🔥 Tính giảm phí ship
+        const discountAmount = Math.min(shippingFee, voucher.maxDiscount);
+
+        res.json({
+            success: true,
+            message: 'Voucher hợp lệ',
+            discountAmount,
+            finalShippingFee: shippingFee - discountAmount
+        });
+
+    } catch (err) {
+        res.status(500).json({ 
+            success: false, 
+            message: err.message 
+        });
+    }
+};
+
+// Get active vouchers
+const getActiveVouchers = async (req, res) => {
+    try {
+        const currentDate = new Date();
+        const vouchers = await Voucher.find({
+            type: "shipping",  // 🔥 thêm để chắc chắn
+            status: 'active',
+            startDate: { $lte: currentDate },
+            expireDate: { $gte: currentDate },
+            $expr: { $lt: ["$usedCount", "$totalUsageLimit"] }
+        });
+
+        res.json({
+            success: true,
+            data: vouchers
         });
     } catch (error) {
         res.status(500).json({
@@ -149,22 +230,22 @@ const updateVoucher = async (req, res) => {
     }
 };
 
-// Xóa voucher
-const deleteVoucher = async (req, res) => {
+// Get global vouchers
+const getGlobalVouchers = async (req, res) => {
     try {
-        const { code } = req.params;
-        const voucher = await Voucher.findOneAndDelete({ code: code.toUpperCase()});
-
-        if (!voucher) {
-            return res.status(404).json({
-                success: false,
-                message: 'Voucher not found'
-            });
-        }
+        const currentDate = new Date();
+        const vouchers = await Voucher.find({
+            isGlobal: true,
+            type: "shipping",   // 🔥 bắt buộc freeship
+            status: 'active',
+            startDate: { $lte: currentDate },
+            expireDate: { $gte: currentDate },
+            $expr: { $lt: ["$usedCount", "$totalUsageLimit"] }
+        });
 
         res.json({
             success: true,
-            message: 'Voucher deleted successfully'
+            data: vouchers
         });
     } catch (error) {
         res.status(500).json({
@@ -172,12 +253,14 @@ const deleteVoucher = async (req, res) => {
             message: error.message
         });
     }
-}
-
+};
 module.exports = {
     getAllVouchers,
     getVoucherByCode,
     createVoucher,
     updateVoucher,
-    deleteVoucher
+    deleteVoucher,
+    validateVoucher,
+    getActiveVouchers,
+    getGlobalVouchers
 };
