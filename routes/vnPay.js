@@ -310,6 +310,9 @@ router.get('/payment-result', async  (req, res) => {
          // Lưu vào global cache 
          if (!global.paymentResults) global.paymentResults = {};
          global.paymentResults[orderCode] = paymentResult;
+         
+        const deeplink = `coolmate://payment-result?status=success&orderId=${orderCode}&amount=${amount}&transactionId=${query.vnp_TransactionNo}`;
+         
 
     } catch (updateError) {
          console.error("❌ Lỗi cập nhật đơn hàng:", updateError);
@@ -317,6 +320,7 @@ router.get('/payment-result', async  (req, res) => {
        }
   }
   else {
+    // Cập nhật trạng thái thất bại
     try {
       await Order.findOneAndUpdate(
       { order_code: orderCode },
@@ -333,9 +337,22 @@ router.get('/payment-result', async  (req, res) => {
 } catch (updateError) {
   console.error("❌ Lỗi cập nhật trạng thái thất bại:", updateError);
 }
+     // Lưu kết quả thất bại vào cache
+       const paymentResult = {
+         status: 'failed',
+         orderId: orderCode,
+         errorCode: query.vnp_ResponseCode,
+         errorMessage: query.vnp_Message || 'Thanh toán thất bại',
+         timestamp: new Date().toISOString()
+       };
+       
+       if (!global.paymentResults) global.paymentResults = {};
+       global.paymentResults[orderCode] = paymentResult;
+       // Redirect về deeplink với thông tin thất bại
+       return res.redirect(`coolmate://payment-result?status=failed&orderId=${orderCode}&errorCode=${query.vnp_ResponseCode}&errorMessage=${query.vnp_Message || 'Thanh toán thất bại'}`);
   } 
 }else {
-     // ✅ Redirect về deeplink khi hash không hợp lệ
+     //  Redirect về deeplink khi hash không hợp lệ
      return res.redirect(`coolmate://payment-result?status=failed&message=InvalidHash`);
    }
 });
