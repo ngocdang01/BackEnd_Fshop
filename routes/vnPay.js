@@ -3,8 +3,7 @@ const crypto = require('crypto');
 const qs = require('querystring');
 const moment = require('moment');
 const Order = require('../model/model_order');
-const Product = require('../model/model_product');
-const SaleProduct = require('../model/model_sale_product');
+
 
 const router = Router();
 
@@ -210,15 +209,6 @@ router.get('/payment-result', async  (req, res) => {
     });
   }
 
-  //  Check thiếu trường bắt buộc
-  if (!query.vnp_ResponseCode || !query.vnp_Amount || !query.vnp_TxnRef) {
-    return res.json({
-      success: false,
-      message: "Thiếu dữ liệu thanh toán",
-      data: query
-    });
-  }
-
   //  Validate chữ ký
   const secretKey = "GET28K94GCVBQOGQO95ANEG9FF6PR4YL";
   const vnp_SecureHash = query.vnp_SecureHash;
@@ -230,138 +220,183 @@ router.get('/payment-result', async  (req, res) => {
   console.log("VNPay callback data:", query);
 
     if (vnp_SecureHash === checkSum) {
-     const orderCode = query.vnp_OrderInfo.replace("Thanh_toan_don_hang_", "");
-     console.log("🔍 Tìm kiếm đơn hàng với order_code:", orderCode);
-     
-     // Kiểm tra đơn hàng có tồn tại không trước khi cập nhật
-     const existingOrder = await Order.findOne({ order_code: orderCode });
-     if (!existingOrder) {
-       console.error(" Không tìm thấy đơn hàng với order_code:", orderCode);
-       console.log(" Danh sách đơn hàng trong DB:");
-       const allOrders = await Order.find({}, { order_code: 1, createdAt: 1 }).limit(10);
-       console.log(allOrders);
-       
-       return res.redirect(`coolmate://payment-result?status=failed&message=OrderNotFound&orderId=${orderCode}`);
-     }
-     
-     console.log(" Tìm thấy đơn hàng:", existingOrder.order_code, "Status:", existingOrder.status);
 
+  const orderCode = query.vnp_OrderInfo.replace("Thanh_toan_don_hang_", "");
+  console.log("🔍 Tìm kiếm đơn hàng với order_code:", orderCode);
   
+  // Kiểm tra đơn hàng có tồn tại không
+  const existingOrder = await Order.findOne({ order_code: orderCode });
+  if (!existingOrder) {
+    console.error("❌ Không tìm thấy đơn hàng với order_code:", orderCode);
+    const allOrders = await Order.find({}, { order_code: 1, createdAt: 1 }).limit(10);
+    console.log(allOrders);
 
-  if (responseCode === "00") {
+    return res.redirect(`coolmate://payment-result?status=failed&message=OrderNotFound&orderId=${orderCode}`);
+  }
+
+  console.log("✅ Tìm thấy đơn hàng:", existingOrder.order_code, "Status:", existingOrder.status);
+
+  if (query.vnp_ResponseCode === "00") {
+
     try {
-       //  Cập nhật đơn hàng từ order_code
-       const updatedOrder = await Order.findOneAndUpdate(
-      { order_code: orderCode },
-      {
-         status: 'confirmed', 
-         updated_at: new Date(),
-         paymentStatus: 'completed',
-         paymentMethod: 'vnpay',
-         paymentDetails: {
-         transactionId: query.vnp_TransactionNo,
-         bankCode: query.vnp_BankCode,
-         paymentTime: query.vnp_PayDate,
-         amount: query.vnp_Amount / 100
-        }
-      },
-      { new: true }
-    );
+      // Cập nhật đơn hàng
+      const updatedOrder = await Order.findOneAndUpdate(
+        { order_code: orderCode },
+        {
+          status: 'confirmed',
+          updated_at: new Date(),
+          paymentStatus: 'completed',
+          paymentMethod: 'vnpay',
+          paymentDetails: {
+            transactionId: query.vnp_TransactionNo,
+            bankCode: query.vnp_BankCode,
+            paymentTime: query.vnp_PayDate,
+            amount: query.vnp_Amount / 100
+          }
+        },
+        { new: true }
+      );
+
       console.log("✅ Cập nhật đơn hàng thành công:", orderCode);
 
-       // CẬP NHẬT TỒN KHO NGAY KHI THANH TOÁN THÀNH CÔNG
-      console.log(`🔄 Cập nhật tồn kho cho đơn hàng VNPay: ${orderCode}`);
-         
-      // Import helper function từ controller_order
+      // Cập nhật tồn kho
       const orderController = require('../controller/controller_order');
-
       for (const item of updatedOrder.items) {
-       // Sử dụng helper function để cập nhật tồn kho
-      const success = await orderController.updateProductStock(item, 'decrease', 'VNPay');
-      if (!success) {
-        console.error(`❌ Không thể cập nhật tồn kho cho sản phẩm ID: ${item.id_product}`);
+        const success = await orderController.updateProductStock(item, 'decrease', 'VNPay');
+        if (!success) console.error(`❌ Không thể cập nhật tồn kho cho sản phẩm ID: ${item.id_product}`);
       }
-    }
-    
-    // Gửi socket notification 
-    try {
-      const io = req.app.get('io');
-      if (io) {
-        io.to(updatedOrder.userId.toString()).emit
-        ('orderStatusUpdated', {
-          orderId: updatedOrder._id,
-          status: 'confirmed',
-          message: 'Thanh toán thành công'
-        });
+
+      // Emit socket
+      try {
+        const io = req.app.get('io');
+        if (io) {
+          io.to(updatedOrder.userId.toString()).emit('orderStatusUpdated', {
+            orderId: updatedOrder._id,
+            status: 'confirmed',
+            message: 'Thanh toán thành công'
+          });
+        }
+      } catch (socketError) {
+        console.log("Socket notification error:", socketError.message);
       }
-     } catch (socketError) {
-      console.log("Socket notification error:", socketError.message);
-     }
-     // Lưu kết quả thanh toán vào cache để FE có thể truy cập
-     const amount = query.vnp_Amount / 100;
-         const paymentResult = {
-           status: 'success',
-           orderId: orderCode,
-           amount: amount,
-           transactionId: query.vnp_TransactionNo,
-           timestamp: new Date().toISOString()
-         };
-         
-         // Lưu vào global cache 
-         if (!global.paymentResults) global.paymentResults = {};
-         global.paymentResults[orderCode] = paymentResult;
-         
-        const deeplink = `coolmate://payment-result?status=success&orderId=${orderCode}&amount=${amount}&transactionId=${query.vnp_TransactionNo}`;
-         
+
+      // Lưu vào cache
+      const amount = query.vnp_Amount / 100;
+      const paymentResult = {
+        status: 'success',
+        orderId: orderCode,
+        amount,
+        transactionId: query.vnp_TransactionNo,
+        timestamp: new Date().toISOString()
+      };
+
+      if (!global.paymentResults) global.paymentResults = {};
+      global.paymentResults[orderCode] = paymentResult;
+
+      // Trả HTML
+      return res.send(`
+        <html><body style="font-family:sans-serif;text-align:center;margin-top:50px">
+          <h1 style="color:#16a34a; font-size: 36px;">✅ Thanh toán thành công!</h1>
+          <p style="font-size: 24px;">Đơn hàng #${orderCode} - Số tiền: ${amount.toLocaleString()} VND</p>
+          <a href="coolmate://payment-result?status=success&orderId=${orderCode}&amount=${amount}"
+          style="padding:12px 20px; background:#0f766e; color:#fff; border-radius:6px; text-decoration:none;">
+          Quay lại ứng dụng</a>
+        </body></html>
+      `);
 
     } catch (updateError) {
-         console.error("❌ Lỗi cập nhật đơn hàng:", updateError);
-         return res.redirect(`coolmate://payment-result?status=failed&message=UpdateError&orderId=${orderCode}`);
-       }
-  }
+      console.error("❌ Lỗi cập nhật đơn hàng:", updateError);
+      return res.redirect(`coolmate://payment-result?status=failed&message=UpdateError&orderId=${orderCode}`);
+    }
+
+  } 
+
   else {
-    // Cập nhật trạng thái thất bại
+
     try {
       await Order.findOneAndUpdate(
-      { order_code: orderCode },
-      {
-      status: 'Thanh toán thất bại',
-      updated_at: new Date(),
-      paymentStatus: 'failed',
-      paymentDetails: {
-        errorCode: query.vnp_ResponseCode,
-        errorMessage: query.vnp_Message || 'Thanh toán thất bại'
-      }
-     }
-  );
-} catch (updateError) {
-  console.error("❌ Lỗi cập nhật trạng thái thất bại:", updateError);
-}
-     // Lưu kết quả thất bại vào cache
-       const paymentResult = {
-         status: 'failed',
-         orderId: orderCode,
-         errorCode: query.vnp_ResponseCode,
-         errorMessage: query.vnp_Message || 'Thanh toán thất bại',
-         timestamp: new Date().toISOString()
-       };
-       
-       if (!global.paymentResults) global.paymentResults = {};
-       global.paymentResults[orderCode] = paymentResult;
-       // Redirect về deeplink với thông tin thất bại
-       return res.redirect(`coolmate://payment-result?status=failed&orderId=${orderCode}&errorCode=${query.vnp_ResponseCode}&errorMessage=${query.vnp_Message || 'Thanh toán thất bại'}`);
-  } 
-}else {
-     //  Redirect về deeplink khi hash không hợp lệ
-     return res.redirect(`coolmate://payment-result?status=failed&message=InvalidHash`);
-   }
-});
+        { order_code: orderCode },
+        {
+          status: 'Thanh toán thất bại',
+          updated_at: new Date(),
+          paymentStatus: 'failed',
+          paymentDetails: {
+            errorCode: query.vnp_ResponseCode,
+            errorMessage: query.vnp_Message || 'Thanh toán thất bại'
+          }
+        }
+      );
+    } catch (updateError) {
+      console.error("❌ Lỗi cập nhật trạng thái thất bại:", updateError);
+    }
 
-router.get('/check_order_status', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API kiểm tra trạng thái đơn hàng đang phát triển',
-  });
+    const paymentResult = {
+      status: 'failed',
+      orderId: orderCode,
+      errorCode: query.vnp_ResponseCode,
+      errorMessage: query.vnp_Message || 'Thanh toán thất bại',
+      timestamp: new Date().toISOString()
+    };
+
+    if (!global.paymentResults) global.paymentResults = {};
+    global.paymentResults[orderCode] = paymentResult;
+
+    return res.redirect(
+      `coolmate://payment-result?status=failed&orderId=${orderCode}&errorCode=${query.vnp_ResponseCode}&errorMessage=${query.vnp_Message || 'Thanh toán thất bại'}`
+    );
+  }
+
+}
+
+else {
+  return res.redirect(`coolmate://payment-result?status=failed&message=InvalidHash`);
+}
+
+});
+// API kiểm tra trạng thái đơn hàng 
+router.get('/check_order_status', async (req, res) => {
+ try {
+    const { order_code } = req.query;
+    
+    if (!order_code) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu order_code"
+      });
+    }
+
+    const order = await Order.findOne({ order_code });
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng",
+        order_code: order_code
+      });
+    }
+
+    res.json({
+      success: true,
+      order: {
+        order_code: order.order_code,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+        finalTotal: order.finalTotal,
+        createdAt: order.createdAt,
+        updated_at: order.updated_at,
+        paymentDetails: order.paymentDetails
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ check_order_status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi kiểm tra trạng thái đơn hàng",
+      error: error.message
+    });
+  }
 });
 
 
