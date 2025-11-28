@@ -356,11 +356,7 @@ router.get('/payment-result', async  (req, res) => {
      return res.redirect(`coolmate://payment-result?status=failed&message=InvalidHash`);
    }
 });
-// // ✅ API kiểm tra trạng thái đơn hàng 
-// router.get("/check_payment", (req, res) => {
-// });
-// ✅ [GET] /vnpay/check_order_status
-// Kiểm tra trạng thái đơn hàng 
+
 router.get('/check_order_status', (req, res) => {
   res.json({
     success: true,

@@ -21,11 +21,6 @@ const voucherSchema = new db.mongoose.Schema({
         required: true,
         min: 0
     },
-    maxDiscount: {
-        type: Number,
-        required: true,
-        min: 0
-    },
     type: {
         type: String,
         enum: ['shipping'],

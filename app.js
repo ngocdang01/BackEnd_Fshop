@@ -76,4 +76,4 @@ app.use(function (err, req, res, next) {
 });
 
 // ✔ Export đúng
-module.exports =  app;
+module.exports =  { app, server };

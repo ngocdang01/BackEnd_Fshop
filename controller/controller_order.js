@@ -129,7 +129,7 @@ const orderController = {
 
       // ✅ Kiểm tra tồn kho từng sản phẩm
       for (const item of items) {
-        if (!item.id_product || !item.purchaseQuantity || !item.size) {
+        if (!item.id_product || !item.name || !item.purchaseQuantity || !item.price ||  !item.size) {
           return res.status(400).json({
             message: "Thiếu thông tin sản phẩm (id_product, purchaseQuantity, size)"
           });
@@ -287,7 +287,18 @@ getAllOrders: async (req, res) => {
 
     console.log(`📦 Found ${orders.length} orders`);
 
-    return res.status(200).json({ data: orders });
+    const populatedOrders = await Promise.all(
+        orders.map(async (order) => {
+          try {
+            return await populateProductDetails(order);
+          } catch (populateError) {
+            console.error(`❌ Error populating order ${order._id}:`, populateError.message);
+            return order;
+          }
+        })
+      );
+
+      return res.status(200).json({ data: populatedOrders });
   } catch (error) {
     console.error("❌ getAllOrders error:", error);
     return res.status(500).json({
@@ -356,14 +367,22 @@ updateStatus: async (req, res) => {
     const oldStatus = order.status;
 
     if (status === 'confirmed' && oldStatus === 'waiting') {
-      if (order.paymentMethod === 'cod') {
+       const isPaid = order.paymentStatus === 'completed' || order.paymentMethod === 'vnpay';
+      if (!isPaid && order.paymentMethod === 'cod') {
         console.log(`🔽 Trừ kho vì COD xác nhận đơn: ${order.order_code}`);
         for (const item of order.items) {
-          await updateProductStock(item, 'decrease', 'COD-confirm');
+        const success =  await updateProductStock(item, 'decrease', 'COD-confirm');
+        if (!success) {
+              return res.status(400).json({
+                message: `Không thể cập nhật tồn kho cho sản phẩm ID: ${item.id_product}`
+              });
+            }
         }
-      } else {
-        console.log(`ℹ️ Đơn không phải COD → KHÔNG trừ tồn kho`);
-      }
+      } else if (isPaid) {
+          console.log(`ℹ️ Đơn hàng ${order.order_code} đã được thanh toán (${order.paymentMethod}), bỏ qua cập nhật tồn kho`);
+        } else {
+          console.log(`ℹ️ Đơn hàng ${order.order_code} không phải COD, bỏ qua cập nhật tồn kho`);
+        }
     }
 
     if (status === 'cancelled' && ['confirmed', 'shipped', 'pending'].includes(oldStatus)) {
@@ -373,21 +392,12 @@ updateStatus: async (req, res) => {
       }
     }
 
-
-    if (['confirmed', 'shipped', 'pending'].includes(status) && oldStatus === 'cancelled') {
-      console.log(`🔄 Giảm lại tồn vì admin xác nhận lại đơn đã hủy: ${order.order_code}`);
-      for (const item of order.items) {
-        const ok = await updateProductStock(item, 'decrease', 'reconfirm');
-        if (!ok) {
-          return res.status(400).json({
-            message: `Không thể trừ tồn kho cho sản phẩm ${item.id_product}`
-          });
-        }
-      }
-    }
-    
-    order.status = status;
-    await order.save();
+    const updatedOrder = await modelOrder.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+ 
 
     if (status === "shipped") {
       setTimeout(async () => {
@@ -395,9 +405,19 @@ updateStatus: async (req, res) => {
         if (checkOrder && checkOrder.status === "shipped") {
           checkOrder.status = "delivered";
           await checkOrder.save();
+
+          const io = req.app.get("io");
+            if (io) {
+              io.to(`order_${checkOrder.userId}`).emit("orderStatusUpdated", {
+                orderId: checkOrder._id,
+                status: "delivered",
+                fullOrder: checkOrder
+              });
+            }
+
           console.log(`📦 Auto chuyển đơn ${id} sang delivered sau 40 giây`);
         }
-      }, 40000);
+      }, 40 * 1000);
     }
 
     const io = req.app.get('io');
@@ -449,16 +469,9 @@ if (io && userId) {
   console.log('📨 Nội dung:', noti.toObject());
 }
 
-    if (io) {
-      io.to(`order_${order.userId}`).emit('orderStatusUpdated', {
-        orderId: order._id,
-        status: order.status,
-      });
-    }
-
     return res.status(200).json({
       message: "Cập nhật trạng thái đơn hàng thành công",
-      data: order,
+      data: updatedOrder
     });
 
   } catch (error) {

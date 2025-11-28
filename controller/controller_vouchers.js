@@ -50,7 +50,6 @@ const createVoucher = async (req, res) => {
             label,
             description,
             discount,
-            maxDiscount,
             minOrderAmount,
             startDate,
             expireDate,
@@ -70,14 +69,14 @@ const createVoucher = async (req, res) => {
             description,
             type: "shipping", // 🔥 CHỈ CHO FREESHIP
             discount,
-            maxDiscount,
             minOrderAmount,
             startDate,
             expireDate,
             usageLimitPerUser,
             totalUsageLimit,
             createdBy,
-            isGlobal
+            isGlobal,
+            status: req.body.status || "active"
         });
         await voucher.save();
 
@@ -113,7 +112,7 @@ const updateVoucher = async (req, res) => {
         if (!voucher) {
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy voucher"'
+                message: 'Không tìm thấy voucher'
             });
         }
 
@@ -185,12 +184,12 @@ const validateVoucher = async (req, res) => {
         if (orderAmount < voucher.minOrderAmount)
             return res.status(400).json({
                 success: false,
-                message: `Order must reach ${voucher.minOrderAmount}đ`
+                message: `Đơn hàng phải đạt tối thiểu ${voucher.minOrderAmount}đ`
             });
 
         // 🔥 Tính giảm phí ship
-        const discountAmount = Math.min(shippingFee, voucher.maxDiscount);
-
+        const discountAmount = Math.min(shippingFee, voucher.discount);
+        
         res.json({
             success: true,
             message: 'Voucher hợp lệ',
