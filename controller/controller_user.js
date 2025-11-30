@@ -14,9 +14,17 @@ exports.register = async (req, res) => {
 
     // Kiểm tra email đã tồn tại chưa
     const existingUser = await User.findOne({ email });
+
     if (existingUser) {
-      console.log('Email đã tồn tại:');
-      return res.status(400).json({ message: "Email đã tồn tại" });
+        // Nếu user bị khóa → không cho đăng ký lại
+        if (existingUser.isActive === false) {
+            return res.status(403).json({
+                message: "Tài khoản với email này đã bị khóa. Không thể đăng ký lại."
+            });
+        }
+
+        // Nếu user đang hoạt động → email đã tồn tại
+        return res.status(400).json({ message: "Email đã tồn tại" });
     }
 
     // Bảo mật mật khẩu cao
@@ -58,6 +66,12 @@ exports.login = async (req, res) => {
     if (!user) {
       console.log("No user found with email:", email);
       return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" });
+    }
+    // Kiểm tra user bị khóa
+    if (user.isActive === false) {
+      return res.status(403).json({
+        message: "Tài khoản đã bị khóa. Vui lòng liên hệ Admin!"
+      });
     }
 
     // Kiểm tra mật khẩu
@@ -377,6 +391,25 @@ exports.resetPassword = async (req, res) => {
   } catch (error) {
       console.error('Reset password error:', error);
       res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+// Khóa mở User
+exports.toggleActive = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy user" });
+    }
+    user.isActive = user.isActive === true ? false : true;
+    await user.save();
+
+    res.json({
+      success: true,
+      isActive: user.isActive,
+      message: user.isActive ? "Đã mở khóa người dùng" : "Đã khóa người dùng",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };
 

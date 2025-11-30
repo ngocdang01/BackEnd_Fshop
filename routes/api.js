@@ -83,6 +83,8 @@ router.get('/users', userController.getAllUsers);
 router.get('/users/:id', userController.getUserById);
 // link : http://localhost:3002/api/users/:id
 router.put('/users/:id', userController.updateUserById);
+// link : http://localhost:3002/api/users/:id/toggle-active
+router.patch("/users/:id/toggle-active", userController.toggleActive);
 // link : http://localhost:3002/api/users/:id
 router.delete('/users/:id', userController.deleteUser);
 // link : http://localhost:3002/api/reset-password
