@@ -18,6 +18,7 @@ const userVoucherController = require('../controller/controller_user_voucher');
 const UserVoucher = require("../model/model_user_voucher");
 
 
+
 // link : http://localhost:3002/api/
 
 // Product routes
@@ -218,6 +219,14 @@ router.post('/favorites/add', favoriteController.addToFavorites);
 router.delete('/favorites/:userId/:productId', favoriteController.removeFromFavorites);
 // link: http://localhost:3002/api/favorites/check/:userId/:productId
 router.get('/favorites/check/:userId/:productId', favoriteController.checkFavorite);
+
+// Comment routes
+// link: http://localhost:3002/api/comments/:productId (lấy tất cả comment của sản phẩm)
+router.get('/comments/:productId', commentController.getProductDetailWithComments);
+// link: http://localhost:3002/api/comments/add (thêm comment mới)
+router.post('/comments/add', commentController.createComment);
+//(thêm nhiều comment mới)
+router.post('/comments/add-multi', commentController.createMultipleComments);
 
 // Banner routes
 // link: http://localhost:3002/api/banners
