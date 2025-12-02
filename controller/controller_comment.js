@@ -68,12 +68,26 @@ exports.createComment = async (req, res) => {
     if (item.isReviewed) {
       return res.status(400).json({ message: "Sản phẩm này đã được đánh giá rồi" });
     }
-
-    return res.status(201).json({
-      message: " tạo 1 comment",
-      data: { orderId, productId, userId, type, rating, content }
-
+    // Tạo comment link tới product, user, order
+    const newComment = new Comment({
+      productId: new Types.ObjectId(productId),
+      userId: new Types.ObjectId(userId),
+      type,
+      rating,
+      content,
+      order: orderId,
     });
+    await newComment.save();
+
+    // Cập nhật đơn hàng: gắn isReviewed = true cho item đã review
+    await Order.updateOne(
+      { _id: orderId, "items.id_product": productId },
+      { $set: { "items.$.isReviewed": true } }
+    );
+    // Cập nhật rating trung bình
+    await updateProductRating(productId, type);
+
+    res.status(201).json({ message: "Đánh giá thành công", comment: newComment });
 
   } catch (error) {
     console.error("Lỗi khi tạo comment:", error);
@@ -83,28 +97,66 @@ exports.createComment = async (req, res) => {
 
 // THÊM NHIỀU COMMENT 
 exports.createMultipleComments = async (req, res) => {
+    console.log("📌 createMultipleComments", req.body);
   try {
-    console.log(" createMultipleComments()");
-
     const { orderId, userId, reviews } = req.body;
 
-    if (!orderId || !userId) {
-      return res.status(400).json({ message: "Thiếu dữ liệu bắt buộc" });
-    }
+     if (!orderId) return res.status(400).json({ message: "orderId không được để trống" });
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
 
     if (!Array.isArray(reviews)) {
       return res.status(400).json({ message: "Không có đánh giá nào được gửi" });
     }
 
-    return res.status(201).json({
-      message: "Khung API tạo nhiều comment",
-      total: reviews.length,
-      reviews,
-    });
+    const savedComments = [];
+
+    for (const review of reviews) {
+      const { productId, type = "normal", rating, content } = review;
+
+      // Kiểm tra sản phẩm có trong đơn hàng không
+      const item = order.items.find(i => {
+        const prodId = i.id_product?._id || i.id_product;
+        return prodId?.toString() === productId;
+      });
+      if (!item) continue;
+
+      // Nếu sản phẩm đã review rồi thì bỏ qua
+      if (item.isReviewed) continue;
+
+      // Tạo comment
+      const newComment = new Comment({
+        productId: new Types.ObjectId(productId),
+        userId: new Types.ObjectId(userId),
+        type,
+        rating,
+        content,
+        order: orderId,
+      });
+      await newComment.save();
+      savedComments.push(newComment);
+
+      // Đánh dấu sản phẩm đã review
+      const objProductId = new Types.ObjectId(productId);
+      await Order.updateOne(
+        { _id: orderId, "items.id_product": objProductId },
+        { $set: { "items.$.isReviewed": true } }
+      );
+
+      // Cập nhật rating trung bình
+      await updateProductRating(productId, type);
+    }
+
+    if (savedComments.length === 0) {
+      return res.status(400).json({ message: "Không có sản phẩm nào được đánh giá (có thể đã đánh giá trước đó)" });
+    }
+
+    res.status(201).json({ message: "Đánh giá thành công", comments: savedComments });
 
   } catch (error) {
     console.error(" Lỗi khi tạo nhiều comment:", error);
-    res.status(500).json({ message: "Lỗi server" });
+    res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };
 
