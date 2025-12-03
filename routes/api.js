@@ -66,6 +66,8 @@ router.put('/sale-products/:id/discount-status', saleProductController.updateDis
 router.put('/sale-products/:id/sold', saleProductController.updateSoldCount);
 // link: http://localhost:3002/api/sale-products/best-selling
 router.get('/sale-products/best-selling', saleProductController.getBestSellingProducts);
+// link: http://localhost:3002/api/sale-products/:id/detail
+router.get('/sale-products/:id/detail', saleProductController.getSaleProductDetailWithComments);
 
 // User routes
 // link : http://localhost:3002/api/register

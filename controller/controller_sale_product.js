@@ -556,3 +556,60 @@ exports.getBestSellingProducts = async (req, res) => {
     });
   }
 };
+exports.getSaleProductDetailWithComments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const objectId = new Types.ObjectId(id);
+
+    const allComments = await Comment.find();
+    console.log(
+      "📌 Tất cả comment trong DB:",
+      allComments.map((c) => ({
+        _id: c._id,
+        productId: c.productId,
+        type: c.type,
+        rating: c.rating,
+        content: c.content,
+      }))
+    );
+
+    const product = await SaleProduct.findById(objectId);
+    if (!product) {
+      return res.status(404).json({ message: "Sale product not found" });
+    }
+
+    console.log("📌 Query comment với:", { productId: objectId, type: "sale" });
+
+    const comments = await Comment.find({
+      productId: { $in: [objectId, id] },
+      type: "sale",
+    })
+      .populate("userId", "name avatar")
+      .sort({ createdAt: -1 });
+
+    console.log("📌 Query comment với:", {
+      productId: [objectId, id],
+      type: "sale",
+    });
+
+    const totalReviews = comments.length;
+    const averageRating =
+      totalReviews > 0
+        ? (
+            comments.reduce((sum, c) => sum + c.rating, 0) / totalReviews
+          ).toFixed(1)
+        : 0;
+
+    res.json({
+      status: 200,
+      message: "Lấy chi tiết sản phẩm khuyến mãi kèm bình luận thành công",
+      data: product,
+      comments,
+      averageRating: Number(averageRating),
+      totalReviews,
+    });
+  } catch (err) {
+    console.error("Get sale product detail with comments error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
