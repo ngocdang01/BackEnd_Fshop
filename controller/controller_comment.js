@@ -163,22 +163,50 @@ exports.createMultipleComments = async (req, res) => {
 // LẤY CHI TIẾT SẢN PHẨM KÈM COMMENT 
 exports.getProductDetailWithComments = async (req, res) => {
   try {
-    console.log(" getProductDetailWithComments()");
-
+     //Lấy id từ URL, convert sang ObjectId
     const { id } = req.params;
+    const objId = new Types.ObjectId(id);
 
-    if (!id) {
-      return res.status(400).json({ message: "Thiếu productId" });
+    //Thử tìm trong Product trước. Nếu không có, thử trong SaleProduct. Tự xác định type
+    let product = await Product.findById(objId);
+    let type = "normal";
+    if (!product) {
+      product = await SaleProduct.findById(objId);
+      type = "sale";
     }
 
-    return res.json({
-      message: " lấy sản phẩm + bình luận",
-      productId: id,
-      comments: [],
+    console.log("📌 Query detail product:", { id, foundType: type, product: !!product });
+
+    if (!product) {
+      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+    }
+
+    //Lấy toàn bộ comment của sản phẩm theo type
+    const comments = await Comment.find({ productId: objId,  // hoặc saleProductId nếu type === 'sale'
+      type: type   })
+      .populate({ path: "userId", select: "name avatar" })
+      .sort({ createdAt: -1 });
+
+    console.log("📌 Comments found:", comments.length);
+
+    //Tính lại averageRating từ tập comment vừa query
+    const totalReviews = comments.length;
+    const averageRating = totalReviews > 0
+      ? (comments.reduce((sum, c) => sum + (c.rating || 0), 0) / totalReviews).toFixed(1)
+      : 0;
+
+    //Trả về JSON: product, comments (đã populate), averageRating ép về Number (ở đây đã xử lý string→number), totalReviews và type
+    res.json({
+      product,
+      comments,
+      averageRating: Number(averageRating),
+      totalReviews: comments.length,
+      type
     });
 
   } catch (error) {
-    res.status(500).json({ error: err.message });
+    console.error("Lỗi khi tạo comment:", error);
+    res.status(500).json({ message: "Lỗi server",error: err.message });
   }
 };
 

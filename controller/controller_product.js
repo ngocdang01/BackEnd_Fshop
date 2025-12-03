@@ -374,3 +374,45 @@ exports.updateSoldQuantity = async (req, res) => {
         res.status(500).json({ message: 'Lỗi khi cập nhật số lượng đã bán', error: error.message });
     }
 };
+// Lấy chi tiết sản phẩm kèm bình luận
+exports.getProductDetailWithComments = async (req, res) => {
+    try {
+      const objectId = new Types.ObjectId(req.params.id);
+      const product = await Product.findById(objectId).populate('sizes');
+      
+      if (!product) {
+        return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+      }
+  
+      // Lấy comment kèm thông tin user (name, avatar)
+      const comments = await Comment.find({ productId: objectId })
+        .sort({ createdAt: -1 })
+        .populate('userId', 'name avatar'); 
+        // Lưu ý: userId trong model Comment phải là ObjectId ref tới User
+  
+      res.json({
+        product,
+        comments: comments.map(c => ({
+          _id: c._id,
+          content: c.content,
+          rating: c.rating,
+          createdAt: c.createdAt,
+          user: c.userId ? {
+            _id: c.userId._id,
+            name: c.userId.name,
+            avatar: c.userId.avatar
+          } : {
+            name: 'Người dùng',
+            avatar: 'https://i.pinimg.com/736x/bc/43/98/bc439871417621836a0eeea768d60944.jpg'
+          }
+        }))
+      });
+  
+    } catch (error) {
+      console.error('Get product detail with comments error:', error);
+      res.status(500).json({
+        message: 'Lỗi khi lấy chi tiết sản phẩm kèm bình luận',
+        error: error.message
+      });
+    }
+  };
