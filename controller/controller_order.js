@@ -398,28 +398,6 @@ updateStatus: async (req, res) => {
       { new: true }
     );
  
-
-    if (status === "shipped") {
-      setTimeout(async () => {
-        const checkOrder = await modelOrder.findById(id);
-        if (checkOrder && checkOrder.status === "shipped") {
-          checkOrder.status = "delivered";
-          await checkOrder.save();
-
-          const io = req.app.get("io");
-            if (io) {
-              io.to(`order_${checkOrder.userId}`).emit("orderStatusUpdated", {
-                orderId: checkOrder._id,
-                status: "delivered",
-                fullOrder: checkOrder
-              });
-            }
-
-          console.log(`📦 Auto chuyển đơn ${id} sang delivered sau 40 giây`);
-        }
-      }, 40 * 1000);
-    }
-
     const io = req.app.get('io');
     const populatedOrder = await modelOrder.findById(updatedOrder._id)
   .populate('userId')
