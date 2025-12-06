@@ -82,7 +82,7 @@ const populateProductDetails = async (order) => {
 
         
         return {
-          ...item,   // ✔ Không dùng item.toObject()
+          ...item.toObject(),   // ✔ Không dùng item.toObject()
           productDetails: product,
           images: item.images || product?.images || []
         };

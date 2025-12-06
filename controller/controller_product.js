@@ -1,6 +1,6 @@
 const Product = require("../model/model_product");
 const ProductSize = require("../model/model_product_size");
-
+const Comment = require('../model/model_comment');
 const { Types } = require("mongoose"); // dùng đê convert _id ve objectID
 
 // Lấy danh sách sản phẩm
