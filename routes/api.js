@@ -15,6 +15,7 @@ const notificationController = require('../controller/controller_notification');
 const cartController = require('../controller/controller_cart');
 const voucherController = require('../controller/controller_vouchers');
 const userVoucherController = require('../controller/controller_user_voucher');
+const commentController = require('../controller/controller_comment');
 const UserVoucher = require("../model/model_user_voucher");
 
 
@@ -88,6 +89,8 @@ router.get('/users', userController.getAllUsers);
 router.get('/users/:id', userController.getUserById);
 // link : http://localhost:3002/api/users/:id
 router.put('/users/:id', userController.updateUserById);
+// link : http://localhost:3002/api/users/:id/toggle-active
+router.patch("/users/:id/toggle-active", userController.toggleActive);
 // link : http://localhost:3002/api/users/:id
 router.delete('/users/:id', userController.deleteUser);
 // link : http://localhost:3002/api/reset-password
