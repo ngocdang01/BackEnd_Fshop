@@ -180,3 +180,42 @@ exports.checkFavorite = async (req, res) => {
         res.status(500).json({ message: 'Lỗi khi kiểm tra yêu thích', error: error.message });
     }
 };
+// Lấy chi tiết sản phẩm kèm trạng thái yêu thích và bình luận
+exports.getProductDetailWithFavoriteAndComments = async (req, res) => {
+    try {
+        //Lấy productId, userId, type từ params
+        const { productId, userId, type = 'normal' } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({ message: 'ID sản phẩm không hợp lệ' });
+        }
+
+        //Lấy sản phẩm tương ứng theo type
+        let product;
+        if (type === 'sale') {
+            product = await SaleProduct.findById(productId);
+        } else {
+            product = await Product.findById(productId);
+        }
+
+        console.log('Found product:', !!product);
+        if (!product) {
+            return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+        }
+
+        //Kiểm tra sản phẩm có thuộc yêu thích của user không.
+        let isFavorite = false;
+        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+            const favorite = await Favorite.findOne({ userId, productId });
+            isFavorite = !!favorite;
+        }
+
+        //Lấy danh sách comment theo productId, sắp xếp mới nhất lên đầu.
+        const comments = await Comment.find({ productId }).sort({ createdAt: -1 });
+
+        res.json({ product, isFavorite, comments });
+    } catch (error) {
+        console.error('Get product detail error:', error);
+        res.status(500).json({ message: 'Lỗi khi lấy chi tiết sản phẩm', error: error.message });
+    }
+};

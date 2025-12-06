@@ -80,8 +80,9 @@ const populateProductDetails = async (order) => {
           }
         }
 
+        
         return {
-          ...item.toObject(),
+          ...item,   // ✔ Không dùng item.toObject()
           productDetails: product,
           images: item.images || product?.images || []
         };
@@ -89,7 +90,7 @@ const populateProductDetails = async (order) => {
     );
 
     return {
-      ...order.toObject(),
+      ...order.toObject(), // ✔ Nếu order là Document → OK
       items: populatedItems
     };
   } catch (error) {

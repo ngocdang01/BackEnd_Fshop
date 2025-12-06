@@ -226,6 +226,8 @@ router.post('/favorites/add', favoriteController.addToFavorites);
 router.delete('/favorites/:userId/:productId', favoriteController.removeFromFavorites);
 // link: http://localhost:3002/api/favorites/check/:userId/:productId
 router.get('/favorites/check/:userId/:productId', favoriteController.checkFavorite);
+// link: http://localhost:3002/api/products/:productId/detail/:userId
+router.get('/products/:productId/detail/:userId', favoriteController.getProductDetailWithFavoriteAndComments);
 
 // Comment routes
 // link: http://localhost:3002/api/comments/:productId (lấy tất cả comment của sản phẩm)

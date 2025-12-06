@@ -105,7 +105,8 @@ exports.createMultipleComments = async (req, res) => {
 
     const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
-
+    console.log("🧩 Order items:", order.items.map(i => i.id_product.toString()));
+  
     if (!Array.isArray(reviews)) {
       return res.status(400).json({ message: "Không có đánh giá nào được gửi" });
     }
@@ -206,7 +207,7 @@ exports.getProductDetailWithComments = async (req, res) => {
 
   } catch (error) {
     console.error("Lỗi khi tạo comment:", error);
-    res.status(500).json({ message: "Lỗi server",error: err.message });
+    res.status(500).json({ message: "Lỗi server",error: error.message });
   }
 };
 
