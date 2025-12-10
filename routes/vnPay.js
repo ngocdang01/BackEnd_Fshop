@@ -294,15 +294,8 @@ router.get('/payment-result', async  (req, res) => {
       global.paymentResults[orderCode] = paymentResult;
 
       // Trả HTML
-      return res.send(`
-        <html><body style="font-family:sans-serif;text-align:center;margin-top:50px">
-          <h1 style="color:#16a34a; font-size: 36px;">✅ Thanh toán thành công!</h1>
-          <p style="font-size: 24px;">Đơn hàng #${orderCode} - Số tiền: ${amount.toLocaleString()} VND</p>
-          <a href="coolmate://payment-result?status=success&orderId=${orderCode}&amount=${amount}"
-          style="padding:12px 20px; background:#0f766e; color:#fff; border-radius:6px; text-decoration:none;">
-          Quay lại ứng dụng</a>
-        </body></html>
-      `);
+     return res.send(`<html><body style="font-family:Arial;text-align:center;margin-top:40px;background:#f8fafc;color:#0f172a;padding:0 20px;"><div style="width:110px;height:110px;margin:0 auto 20px;border-radius:60px;background:#10b981;display:flex;justify-content:center;align-items:center;box-shadow:0 6px 12px rgba(16,185,129,0.3);"><span style="font-size:60px;color:#fff;font-weight:bold;">✓</span></div><h1 style="color:#065f46;font-size:30px;margin-bottom:8px;">Thanh toán thành công!</h1><p style="font-size:20px;margin-bottom:4px;">Đơn hàng <strong>#${orderCode}</strong></p><p style="font-size:22px;font-weight:bold;color:#0f766e;margin-bottom:28px;">Số tiền: ${amount.toLocaleString()} VND</p><a href="coolmate://payment-result?status=success&orderId=${orderCode}&amount=${amount}" style="display:inline-block;padding:16px 28px;background:#0f766e;color:#fff;font-size:20px;font-weight:bold;text-decoration:none;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.2);">← Quay lại ứng dụng</a></body></html>`);
+
 
     } catch (updateError) {
       console.error("❌ Lỗi cập nhật đơn hàng:", updateError);
@@ -382,7 +375,12 @@ router.get('/check_order_status', async (req, res) => {
         status: order.status,
         paymentStatus: order.paymentStatus,
         paymentMethod: order.paymentMethod,
+        totalPrice: order.totalPrice,
+        shippingFee: order.shippingFee,
+        voucher: order.voucher,
         finalTotal: order.finalTotal,
+        shippingAddress: order.shippingAddress,
+        items: order.items,
         createdAt: order.createdAt,
         updated_at: order.updated_at,
         paymentDetails: order.paymentDetails
