@@ -1,5 +1,6 @@
 const handleOrderStatus = require('./updateOrderStatus');
 const handleNotificationSocket = require('./handleNotificationSocket');
+const handleChatSocket = require('./handleChatSocket');
 
 const initializeSocket = (io) => {
   io.on('connection', (socket) => {
@@ -7,6 +8,7 @@ const initializeSocket = (io) => {
 
     handleOrderStatus(io, socket);
     handleNotificationSocket(io, socket);
+    handleChatSocket(io, socket);
 
   });
   
