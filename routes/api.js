@@ -17,6 +17,7 @@ const voucherController = require('../controller/controller_vouchers');
 const userVoucherController = require('../controller/controller_user_voucher');
 const commentController = require('../controller/controller_comment');
 const UserVoucher = require("../model/model_user_voucher");
+const chatController = require('../controller/controller_chat');
 
 
 
@@ -234,5 +235,27 @@ router.put('/banners/:id', bannerController.updateBanner);
 router.delete('/banners/:id', bannerController.deleteBanner);
 // link: http://localhost:3002/api/banners/:id/toggle
 router.put('/banners/:id/toggle', bannerController.toggleBannerStatus);
+
+// Chat routes
+// link: http://localhost:3002/api/chats/create
+router.post('/chats/create', chatController.createChat);
+// link: http://localhost:3002/api/chats/message
+router.post('/chats/message', chatController.sendMessage);
+// link: http://localhost:3002/api/chats/:chatId
+router.get('/chats/:chatId', chatController.getMessages);
+// link: http://localhost:3002/api/chats/user/:userId
+router.get('/chats/user/:userId', chatController.getUserChats);
+// link: http://localhost:3002/api/chats/read
+router.post('/chats/read', chatController.markAsRead);
+// link: http://localhost:3002/api/chats
+router.get('/chats', chatController.getAllChats);
+
+// POST  link: http://localhost:3002/api/chats/message/reaction
+router.post('/message/reaction', chatController.reactionToMessage);
+// DELETE  link: http://localhost:3002/api/chats/message/:chatId/:messageId
+router.delete('/message/:chatId/:messageId', chatController.deleteMessage);
+// DELETE  link: http://localhost:3002/api/chats/message/:chatId/:messageId
+router.delete('/chats/:chatId', chatController.deleteChat);
+
 
 module.exports = router;
