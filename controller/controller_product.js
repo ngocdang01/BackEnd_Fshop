@@ -296,15 +296,42 @@ exports.searchProducts = async (req, res) => {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
-    const products = await Product.find(query);
-    res.json(products);
+    const products = await Product.find(query)
+    .select("name price images stock isActive sizes")
+    .populate("sizes");
+
+    const responseData = products.map((p) => ({
+      _id: p._id,
+      name: p.name,
+      price: p.price,
+      images: p.images,
+      stock: p.stock,
+      sold: p.sold,
+      categoryCode: p.categoryCode,
+      sizes: p.sizes,
+
+      isActive: p.isActive,          
+      inactive: !p.isActive,         
+      statusMessage: p.isActive
+        ? (p.stock > 0 ? "Sản phẩm đang kinh doanh" : "Tạm hết hàng")
+        : "Sản phẩm ngừng kinh doanh",
+    }));
+
+    res.json({
+      success: true,
+      count: responseData.length,
+      products: responseData
+    });
+
   } catch (error) {
     console.error("Search products error:", error);
-    res
-      .status(500)
-      .json({ message: "Lỗi khi tìm kiếm sản phẩm", error: error.message });
+    res.status(500).json({
+      message: "Lỗi khi tìm kiếm sản phẩm",
+      error: error.message
+    });
   }
 };
+
 // Lấy sản phẩm theo category_code
 exports.getProductsByCategory = async (req, res) => {
   try {

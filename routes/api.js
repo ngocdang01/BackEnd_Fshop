@@ -172,10 +172,6 @@ router.delete('/categories/:id', categoryController.deleteCategory);
 // Voucher routes
 // link: http://localhost:3002/api/vouchers
 router.get('/vouchers', voucherController.getAllVouchers);
-// link: http://localhost:3002/api/vouchers/active
-router.get('/vouchers/active', voucherController.getActiveVouchers);
-// link: http://localhost:3002/api/vouchers/global
-router.get('/vouchers/global', voucherController.getGlobalVouchers);
 // link: http://localhost:3002/api/vouchers/:code
 router.get('/vouchers/:code', voucherController.getVoucherByCode);
 // link: http://localhost:3002/api/vouchers/add
@@ -186,26 +182,6 @@ router.put('/vouchers/:code', voucherController.updateVoucher);
 router.delete('/vouchers/:code', voucherController.deleteVoucher);
 // link: http://localhost:3002/api/vouchers/validate
 router.post('/vouchers/validate', voucherController.validateVoucher);
-
-// User-Voucher routes
-// link: http://localhost:3002/api/user-vouchers/assign
-router.post('/user-vouchers/assign', userVoucherController.assignVoucherToUser);
-// link: http://localhost:3002/api/user-vouchers/user/:userId
-router.get('/user-vouchers/user/:userId', userVoucherController.getUserVouchers);
-// link: http://localhost:3001/api/user-vouchers/:userVoucherId/use
-router.put('/user-vouchers/:userVoucherId/use', userVoucherController.markVoucherAsUsed);
-// link: http://localhost:3001/api/user-vouchers/validate
-router.post('/user-vouchers/validate', userVoucherController.validateUserVoucher);
-// link: http://localhost:3001/api/user-vouchers/available/:userId
-router.get('/user-vouchers/available/:userId', userVoucherController.getAvailableVouchersForUser);
-// link: http://localhost:3001/api/user-vouchers/:userVoucherId
-router.delete('/user-vouchers/:userVoucherId', userVoucherController.removeUserVoucher);
-
-// Admin tặng voucher cho user khi đăng nhập
-// link: http://localhost:3001/api/users/gift-voucher
-router.post('/users/gift-voucher', userController.giftVoucherToUser);
-// link: http://localhost:3001/api/users/gift-voucher-multiple
-router.post('/users/gift-voucher-multiple', userController.giftVoucherToMultipleUsers);
 
 // CART ROUTES
 // link: http://localhost:3002/api/carts/add

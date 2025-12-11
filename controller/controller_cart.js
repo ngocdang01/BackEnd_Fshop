@@ -21,7 +21,10 @@ const getCartByUserId = async (req, res) => {
     const populatedNormalCart = await Cart.findOne({ user_id })
       .populate({
         path: 'items.product_id',
-        match: { _id: { $in: normalItems.map(i => i.product_id) } }
+        match: { 
+          _id: { $in: normalItems.map(i => i.product_id) },
+          isActive: true
+         }
       });
 
     const detailedSaleItems = await Promise.all(

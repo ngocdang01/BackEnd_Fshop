@@ -1,5 +1,4 @@
 const db = require('./db');
-const mongoose = require('mongoose');
 
 const voucherSchema = new db.mongoose.Schema({
     code: {
@@ -40,33 +39,9 @@ const voucherSchema = new db.mongoose.Schema({
         type: Date,
         required: true
     },
-    usageLimitPerUser: {
-        type: Number,
-        required: true,
-        min: 1
-    },
-    totalUsageLimit: {
-        type: Number,
-        required: true,
-        min: 0
-    },
-    usedCount: {
-        type: Number,
-        default: 0,
-        min: 0
-    },
-    createdBy: {
-        type: String,
-        required: true
-    },
-    isGlobal: {
-        type: Boolean,
-        default: false
-    },
     status: {
         type: String,
-        required: true,
-        enum: ['active', 'inactive', 'expired'],
+        enum: ['active', 'inactive'],
         default: 'active'
     }
 }, {
@@ -75,8 +50,6 @@ const voucherSchema = new db.mongoose.Schema({
 
 voucherSchema.index({ status: 1 });
 voucherSchema.index({ startDate: 1, expireDate: 1 });
-voucherSchema.index({ isGlobal: 1 });
 
 const Voucher = db.model('voucher', voucherSchema);
-
 module.exports = Voucher;

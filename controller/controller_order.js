@@ -201,21 +201,33 @@ const orderController = {
         const voucherDoc = await Voucher.findById(voucher.voucherId);
         const now = new Date();
 
-        if (voucherDoc && voucherDoc.status === 'active' && now >= voucherDoc.startDate && now <= voucherDoc.expireDate) {
-          if (voucherDoc.type === 'percentage') {
-            discountAmount = totalPrice * (voucherDoc.discount / 100);
-            discountAmount = Math.min(discountAmount, voucherDoc.maxDiscount);
-          } else if (voucherDoc.type === 'fixed') {
-            discountAmount = voucherDoc.discount;
-          } else if (voucherDoc.type === 'shipping') {
-            discountAmount = shippingFee;
-          }
+        if (voucher?.voucherId) {
+            const voucherDoc = await Voucher.findById(voucher.voucherId);
+            const now = new Date();
+            if (!voucherDoc) {
+              return res.status(404).json({ message: "Voucher không tồn tại" });
+            }
+            if (voucherDoc.status !== 'active') {
+              return res.status(400).json({ message: "Voucher không hoạt động" });
+            }
+            if (now < voucherDoc.startDate) {
+              return res.status(400).json({ message: "Voucher chưa bắt đầu" });
+            }
+            if (now > voucherDoc.expireDate) {
+              return res.status(400).json({ message: "Voucher đã hết hạn" });
+            }
+            if (totalPrice < voucherDoc.minOrderAmount) {
+              return res.status(400).json({
+                message: `Đơn hàng phải đạt tối thiểu ${voucherDoc.minOrderAmount.toLocaleString('vi-VN')}đ để sử dụng voucher này`
+              });
+            }
+            discountAmount = Math.min(shippingFee, voucherDoc.discount);
 
-          voucherData = {
-            voucherId: voucherDoc._id,
-            code: voucher.code || voucherDoc.code,
-            discountAmount
-          };
+            voucherData = {
+              voucherId: voucherDoc._id,
+              code: voucher.code || voucherDoc.code,
+              discountAmount
+            };
         }
       }
 
