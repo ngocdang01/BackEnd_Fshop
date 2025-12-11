@@ -52,6 +52,10 @@ exports.getUserFavorites = async (req, res) => {
                     await Favorite.findByIdAndDelete(fav._id);
                     return null;
                 }
+                if (product.isActive === false) {
+                    await Favorite.findByIdAndDelete(fav._id);
+                    return null;
+                }
 
                 //Nếu sản phẩm tồn tại - trả về object favorite kèm thông tin cơ bản của product
                 return {

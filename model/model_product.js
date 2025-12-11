@@ -45,7 +45,11 @@ const productSchema = new mongoose.Schema({
     totalReviews: {
         type: Number,
         default: 0
-    }
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
 
 }, {
     timestamps: true

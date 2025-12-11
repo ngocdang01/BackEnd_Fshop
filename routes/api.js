@@ -26,11 +26,13 @@ const chatController = require('../controller/controller_chat');
 // Product routes
 // link : http://localhost:3002/api/products    // Lấy danh sách sản phẩm
 router.get('/products', productController.getAllProducts);   
+router.get('/products/active', productController.getActiveProducts);
 // link : http://localhost:3002/api/products/search     // Tìm kiếm sản phẩm
 router.get('/products/search', productController.searchProducts);
 // link : http://localhost:3002/api/products/category/:categoryCode    // Lấy sản phẩm theo category_code
 router.get('/products/category/:categoryCode', productController.getProductsByCategory);
 // link : http://localhost:3002/api/products/:id     // Lấy chi tiết sản phẩm
+router.put('/products/toggle-status/:id', productController.toggleProductStatus);
 router.get('/products/:id', productController.getProductById);
 // link : http://localhost:3002/api/products/add  // Thêm sản phẩm
 router.post('/products/add', productController.createProduct);    
@@ -151,14 +153,18 @@ router.get('/notifications/unread-count/:userId', notificationController.getUnre
 
 
 // Category router
+// link : http://localhost:3002/api/categories/active
+router.get('/categories/active', categoryController.getActiveCategories);
 // link : http://localhost:3002/api/categories
 router.get('/categories', categoryController.getAllCategories);
 // link : http://localhost:3002/api/categories/code/:code
 router.get('/categories/code/:code', categoryController.getCategoryByCode);
-// link : http://localhost:3002/api/categories/:id
-router.get('/categories/:id', categoryController.getCategoryById);
 // link : http://localhost:3002/api/categories/add
 router.post('/categories/add', categoryController.createCategory);
+// link : http://localhost:3002/api/categories/toggle/:id
+router.put('/categories/toggle/:id', categoryController.toggleCategoryStatus);
+// link : http://localhost:3002/api/categories/:id
+router.get('/categories/:id', categoryController.getCategoryById);
 // link : http://localhost:3002/api/categories/:id
 router.put('/categories/:id', categoryController.updateCategory);
 // link : http://localhost:3002/api/categories/:id

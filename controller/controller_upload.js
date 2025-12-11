@@ -38,7 +38,8 @@ exports.uploadImage = async (req, res) => {
     const uploadToCloudinary = () =>
       new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-          { folder: "fshop_products" },
+          // { folder: "fshop_products" },
+          { folder: "coolmate_products" },
           (error, result) => {
             if (error) reject(error);
             else resolve(result);
