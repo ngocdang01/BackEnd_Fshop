@@ -15,7 +15,11 @@ const addressSchema = new mongoose.Schema({
   gps: {
     lat: { type: Number, required: true },
     lng: { type: Number, required: true }
-  }
+  },
+  isDefault: {
+    type: Boolean,
+    default: false
+}
 }, {
   timestamps: true
 });

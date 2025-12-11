@@ -6,7 +6,7 @@ const getAddressesByUser = async (req, res) => {
         const { id_user } = req.params;
         console.log("id_user param:", id_user);
         const id_user_trim = id_user.trim();
-        const addresses = await Address.find({ id_user: id_user_trim });
+        const addresses = await Address.find({ userId: id_user_trim });
         console.log("addresses found:", addresses);
 
         res.status(200).json({
@@ -82,7 +82,7 @@ const createAddress = async (req, res) => {
             commune,
             receivingAddress,
             phone,
-            id_user,
+            userId: id_user, 
             gps
         });
 
@@ -163,7 +163,7 @@ const setDefaultAddress = async (req, res) => {
 
         // First, remove default status from all addresses of this user
         await Address.updateMany(
-            { id_user },
+            {  userId: id_user  },
             { $unset: { isDefault: 1 } }
         );
 
@@ -199,7 +199,7 @@ const getDefaultAddress = async (req, res) => {
     try {
         const { id_user } = req.params;
         const defaultAddress = await Address.findOne({ 
-            id_user, 
+            userId: id_user , 
             isDefault: true 
         });
         if (!defaultAddress) {

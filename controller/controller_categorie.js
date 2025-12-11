@@ -1,4 +1,5 @@
 const Category = require('../model/model_categorie');
+const Product = require("../model/model_product");
 
 // lay danh sach tat ca danh muc
 
@@ -14,6 +15,14 @@ exports.getAllCategories = async (req, res)=>
 
         // lay chi tiet mot danh muc
 
+exports.getActiveCategories = async (req, res) => {
+    try {
+        const categories = await Category.find({ isActive: true });
+        res.json(categories);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 exports.getCategoryById = async (req,res)=>
 {
     try {
@@ -132,3 +141,44 @@ exports.deleteCategory = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }; 
+exports.toggleCategoryStatus = async (req, res) => {
+    try {
+        const category = await Category.findById(req.params.id);
+        if (!category) {
+            return res.status(404).json({ message: "Không tìm thấy danh mục" });
+        }
+
+        // Đảo trạng thái
+        category.isActive = !category.isActive;
+        await category.save();
+
+        // Nếu tắt danh mục → tắt tất cả sản phẩm thuộc danh mục
+        if (!category.isActive) {
+            await Product.updateMany(
+                { categoryCode: category.code },
+                { $set: { isActive: false } }
+            );
+        } else {
+            // Nếu bật danh mục → bật lại sản phẩm
+            await Product.updateMany(
+                { categoryCode: category.code },
+                { $set: { isActive: true } }
+            );
+        }
+
+        return res.json({
+            success: true,
+            message: `Danh mục đã ${category.isActive ? "kích hoạt" : "vô hiệu hóa"} thành công`,
+            data: category
+        });
+
+    } catch (error) {
+        console.error("Toggle category error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Lỗi server khi thay đổi trạng thái danh mục",
+            error: error.message
+        });
+    }
+};
+
