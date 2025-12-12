@@ -14,7 +14,6 @@ const favoriteController = require('../controller/controller_favorite');
 const notificationController = require('../controller/controller_notification');
 const cartController = require('../controller/controller_cart');
 const voucherController = require('../controller/controller_vouchers');
-const userVoucherController = require('../controller/controller_user_voucher');
 const commentController = require('../controller/controller_comment');
 const UserVoucher = require("../model/model_user_voucher");
 const chatController = require('../controller/controller_chat');
@@ -48,30 +47,34 @@ router.put('/products/:id/sold', productController.updateSoldQuantity);
 router.get('/products/:id/detail', productController.getProductDetailWithComments);
 
 // Sale Product routes
-// link : http://localhost:3002/api/sale-products    // Lấy danh sách sản phẩm khuyến mãi
-router.get('/sale-products', saleProductController.getAllSaleProducts);  
+// link : http://localhost:3002/api/sale-products
+router.get('/sale-products', saleProductController.getAllSaleProducts); 
+// http://localhost:3002/api/sale-products/active
+router.get('/sale-products/active', saleProductController.getActiveSaleProducts); 
 // link: http://localhost:3002/api/sale-products/search
 router.get('/sale-products/search', saleProductController.searchSaleProducts);
-// link: http://localhost:3002/api/sale-products/category/:categoryCode       // Lấy sản phẩm khuyến mãi theo category_code
-router.get('/sale-products/category/:categoryCode', saleProductController.getSaleProductsByCategory);    
 // link: http://localhost:3002/api/sale-products/top-discount
 router.get('/sale-products/top-discount', saleProductController.getTopDiscountProducts);
-// link: http://localhost:3002/api/sale-products/:id        // Lấy sản phẩm KM theo ID
-router.get('/sale-products/:id', saleProductController.getSaleProductById);
+// link: http://localhost:3002/api/sale-products/best-selling  <-- ĐÃ CHUYỂN LÊN TRÊN
+router.get('/sale-products/best-selling', saleProductController.getBestSellingProducts);
+// link: http://localhost:3002/api/sale-products/category/:categoryCode
+router.get('/sale-products/category/:categoryCode', saleProductController.getSaleProductsByCategory);
 // link: http://localhost:3002/api/sale-products/add
-router.post('/sale-products/add', saleProductController.createSaleProduct);          // Tạo sản phẩm khuyến mãi mới
-// link: http://localhost:3002/api/sale-products/:id       // Cập nhât sản phẩm khuyến mãi
-router.put('/sale-products/:id', saleProductController.updateSaleProduct);  
-// link : http://localhost:3002/api/sale-products/:id     // Xóa sản phẩm khuyến mãi
-router.delete('/sale-products/:id', saleProductController.deleteSaleProduct);
+router.post('/sale-products/add', saleProductController.createSaleProduct);
+// http://localhost:3002/api/sale-products/toggle-status/:id
+router.put('/sale-products/toggle-status/:id', saleProductController.toggleSaleProductStatus);
 // link: http://localhost:3002/api/sale-products/:id/discount-status
 router.put('/sale-products/:id/discount-status', saleProductController.updateDiscountStatus);
 // link: http://localhost:3002/api/sale-products/:id/sold
 router.put('/sale-products/:id/sold', saleProductController.updateSoldCount);
-// link: http://localhost:3002/api/sale-products/best-selling
-router.get('/sale-products/best-selling', saleProductController.getBestSellingProducts);
 // link: http://localhost:3002/api/sale-products/:id/detail
 router.get('/sale-products/:id/detail', saleProductController.getSaleProductDetailWithComments);
+// link: http://localhost:3002/api/sale-products/:id       // Cập nhât sản phẩm khuyến mãi
+router.put('/sale-products/:id', saleProductController.updateSaleProduct);  
+// link : http://localhost:3002/api/sale-products/:id     // Xóa sản phẩm khuyến mãi
+router.delete('/sale-products/:id', saleProductController.deleteSaleProduct);
+// link: http://localhost:3002/api/sale-products/:id        // Lấy sản phẩm KM theo ID (ĐỂ CUỐI CÙNG TRONG CÁC LỆNH GET)
+router.get('/sale-products/:id', saleProductController.getSaleProductById);
 
 // User routes
 // link : http://localhost:3002/api/register

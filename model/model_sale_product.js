@@ -61,6 +61,10 @@ const saleProductSchema = new mongoose.Schema({
     isDiscount: {
         type: Boolean,
         default: true
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     }
 }, {
     timestamps: true

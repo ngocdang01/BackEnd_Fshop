@@ -1,11 +1,48 @@
 const SaleProduct = require("../model/model_sale_product");
 const ProductSize = require("../model/model_product_size");
+const Comment = require("../model/model_comment");
 const { Types } = require("mongoose");
 
 // Lấy danh sách tất cả sản phẩm khuyến mãi
 exports.getAllSaleProducts = async (req, res) => {
   try {
-    const saleProducts = await SaleProduct.find().populate("sizes");
+    const saleProducts = await SaleProduct.aggregate([
+      {
+        $lookup: {
+          from: "categories", 
+          localField: "categoryCode",
+          foreignField: "code",
+          as: "categoryData"
+        }
+      },
+      { 
+        $unwind: { 
+          path: "$categoryData", 
+          preserveNullAndEmptyArrays: true 
+        } 
+      },
+      {
+        $lookup: {
+          from: "product_sizes",
+          let: { productId: "$_id" },
+          pipeline: [
+            { 
+              $match: { 
+                $expr: { $eq: ["$productCode", "$$productId"] },
+                productModel: "sale_product"
+              }
+            }
+          ],
+          as: "sizes"
+        }
+      },
+      {
+        $addFields: {
+          categoryIsActive: "$categoryData.isActive"
+        }
+      }
+    ]);
+
     res.json(saleProducts);
   } catch (error) {
     res.status(500).json({
@@ -14,6 +51,19 @@ exports.getAllSaleProducts = async (req, res) => {
     });
   }
 };
+// Lấy danh sách sản phẩm khuyến mãi ĐANG HOẠT ĐỘNG (Dành cho Client/User)
+exports.getActiveSaleProducts = async (req, res) => {
+  try {
+    const saleProducts = await SaleProduct.find({ isActive: true }).populate("sizes");
+    res.json(saleProducts);
+  } catch (error) {
+    res.status(500).json({
+      message: "Lỗi khi lấy danh sách sản phẩm khuyến mãi đang hoạt động",
+      error: error.message,
+    });
+  }
+};
+
 // Lấy chi tiết sản phẩm khuyến mãi theo ID
 exports.getSaleProductById = async (req, res) => {
   try {
@@ -30,19 +80,28 @@ exports.getSaleProductById = async (req, res) => {
     const objectId = new Types.ObjectId(id);
     const result = await SaleProduct.findById(objectId).populate('sizes');
 
-    if (result) {
-      res.json({
-        status: 200,
-        message: "Đã tìm thấy sản phẩm khuyến mãi",
-        data: result,
-      });
-    } else {
-      res.status(404).json({
+    if (!result) {
+      return res.status(404).json({
         status: 404,
         message: "Không tìm thấy sản phẩm khuyến mãi",
         data: null,
       });
     }
+
+    // Kiểm tra trạng thái isActive (Admin có thể xem sản phẩm ẩn qua query param ?admin=true)
+    const isAdmin = req.query.admin === "true";
+    if (!result.isActive && !isAdmin) {
+      return res.status(403).json({
+        status: 403,
+        message: "Sản phẩm tạm thời không khả dụng",
+      });
+    }
+
+    res.json({
+      status: 200,
+      message: "Đã tìm thấy sản phẩm khuyến mãi",
+      data: result,
+    });
   } catch (error) {
     console.error("Get sale product error:", error);
     res.status(500).json({
@@ -66,6 +125,7 @@ exports.createSaleProduct = async (req, res) => {
       size,
       categoryCode,
       isDiscount = true,
+      isActive = true,
       size_items,
     } = req.body;
 
@@ -148,9 +208,21 @@ exports.createSaleProduct = async (req, res) => {
       size: size || ["M"],
       categoryCode,
       isDiscount,
+      isActive,
     });
 
     const savedSaleProduct = await saleProduct.save();
+
+    // Lưu size_items vào bảng product_size nếu có
+    if (size_items && Array.isArray(size_items) && size_items.length > 0) {
+        const sizeEntries = size_items.map((item) => ({
+            size: item.size,
+            quantity: item.quantity,
+            productCode: savedSaleProduct._id,
+            productModel: "sale_product",
+        }));
+        await ProductSize.insertMany(sizeEntries);
+    }
 
     res.status(201).json({
       status: 201,
@@ -180,6 +252,7 @@ exports.updateSaleProduct = async (req, res) => {
       size,
       categoryCode,
       isDiscount,
+      isActive, // Nhận trạng thái active
       size_items,
     } = req.body;
 
@@ -203,7 +276,7 @@ exports.updateSaleProduct = async (req, res) => {
 
     if (
       discount_percent !== undefined &&
-      (discount_percent < 0 || discount_percent > 1000)
+      (discount_percent < 0 || discount_percent > 100)
     ) {
       return res.status(400).json({
         status: 400,
@@ -251,6 +324,7 @@ exports.updateSaleProduct = async (req, res) => {
     if (size && Array.isArray(size)) saleProduct.size = size;
     if (categoryCode) saleProduct.categoryCode = categoryCode;
     if (isDiscount !== undefined) saleProduct.isDiscount = isDiscount;
+    if (isActive !== undefined) saleProduct.isActive = isActive; // Cập nhật active
 
     // Recalculate discount_price if price or discount_percent changed
     if (price !== undefined || discount_percent !== undefined) {
@@ -268,18 +342,21 @@ exports.updateSaleProduct = async (req, res) => {
 
     const productId = updatedSaleProduct._id;
 
-    await ProductSize.deleteMany({
-      productCode: productId,
-      productModel: "sale_product",
-    });
+    // Cập nhật sizes nếu có size_items gửi lên
+    if (size_items) {
+        await ProductSize.deleteMany({
+          productCode: productId,
+          productModel: "sale_product",
+        });
 
-    const sizeEntries = size_items.map((item) => ({
-      size: item.size,
-      quantity: item.quantity,
-      productCode: productId,
-      productModel: "sale_product",
-    }));
-    await ProductSize.insertMany(sizeEntries);
+        const sizeEntries = size_items.map((item) => ({
+          size: item.size,
+          quantity: item.quantity,
+          productCode: productId,
+          productModel: "sale_product",
+        }));
+        await ProductSize.insertMany(sizeEntries);
+    }
 
     res.json({
       status: 200,
@@ -308,6 +385,11 @@ exports.deleteSaleProduct = async (req, res) => {
         message: "Không tìm thấy sản phẩm khuyến mãi",
       });
     }
+    // Xóa luôn size liên quan
+    await ProductSize.deleteMany({ 
+        productCode: objectId, 
+        productModel: 'sale_product' 
+    });
 
     res.json({
       status: 200,
@@ -323,7 +405,7 @@ exports.deleteSaleProduct = async (req, res) => {
   }
 };
 
-// Tìm kiếm sản phẩm khuyến mãi
+// Tìm kiếm sản phẩm khuyến mãi (SỬA: Để tìm được cả sản phẩm ẩn)
 exports.searchSaleProducts = async (req, res) => {
   try {
     const { keyword, minPrice, maxPrice, minDiscount, maxDiscount } = req.query;
@@ -345,12 +427,18 @@ exports.searchSaleProducts = async (req, res) => {
       if (maxDiscount) query.discount_percent.$lte = Number(maxDiscount);
     }
 
-    const saleProducts = await SaleProduct.find(query);
+    const saleProducts = await SaleProduct.find(query).populate("sizes");
+    const responseData = saleProducts.map((p) => ({
+        ...p.toObject(),
+        statusMessage: p.isActive
+            ? (p.stock > 0 ? "Sản phẩm đang kinh doanh" : "Tạm hết hàng")
+            : "Sản phẩm ngừng kinh doanh",
+    }));
 
     res.json({
       status: 200,
       message: "Tìm kiếm sản phẩm khuyến mãi thành công",
-      data: saleProducts,
+      data: responseData, 
     });
   } catch (error) {
     console.error("Search sale products error:", error);
@@ -372,11 +460,16 @@ exports.getSaleProductsByCategory = async (req, res) => {
         message: "Category code là bắt buộc"
       });
     }
-    const saleProducts = await SaleProduct.find({ categoryCode: categoryCode.toLowerCase(), });
+    
+    // Mặc định lấy sản phẩm Active (dành cho hiển thị shop)
+    const saleProducts = await SaleProduct.find({ 
+        categoryCode: categoryCode.toLowerCase(), 
+        isActive: true 
+    });
 
     if(saleProducts.length === 0) {
-      return res.status(404).json({
-        status: 404,
+      return res.status(200).json({
+        status: 200,
         message: "Không có sản phẩm khuyến mãi nào cho category_code",
         categoryCode: categoryCode,
         data: []
@@ -404,7 +497,10 @@ exports.getTopDiscountProducts = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
 
-    const saleProducts = await SaleProduct.find({ isDiscount: true })
+    const saleProducts = await SaleProduct.find({ 
+        isDiscount: true, 
+        isActive: true 
+    })
       .sort({ discount_percent: -1 })
       .limit(Number(limit));
 
@@ -423,7 +519,7 @@ exports.getTopDiscountProducts = async (req, res) => {
   }
 };
 
-// Cập nhật trạng thái khuyến mãi
+// Cập nhật trạng thái khuyến mãi (isDiscount)
 exports.updateDiscountStatus = async (req, res) => {
   try {
     const { isDiscount } = req.body;
@@ -461,7 +557,6 @@ exports.updateSoldCount = async (req, res) => {
     const { id } = req.params;
     const { quantity } = req.body;
 
-    // Validate ID
     if (!Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         status: 400,
@@ -470,8 +565,7 @@ exports.updateSoldCount = async (req, res) => {
       });
     }
 
-    // Validate quantity
-    if (!quantity || quantity <= 0 || !Numbr.isInteger(quantity)) {
+    if (!quantity || quantity <= 0 || !Number.isInteger(quantity)) {
       return res.status(400).json({
         status: 400,
         message: "Số lượng phải là số nguyên > 0",
@@ -479,22 +573,10 @@ exports.updateSoldCount = async (req, res) => {
       });
     }
 
-    const objectId = new Types.ObjectId(id);
-    const saleProduct = await SaleProduct.findById(objectId);
-
-    if (!saleProduct) {
-      return res.status(404).json({
-        status: 404,
-        message: "Không tìm thấy sản phẩm khuyến mãi",
-        data: null,
-      });
-    }
-
-    // Update atomic để tránh race condition
     const updatedSaleProduct = await SaleProduct.findOneAndUpdate(
       {
         _id: id,
-        stock: { $gte: quantity } // kiểm tra tồn kho ngay trong query
+        stock: { $gte: quantity } 
       },
       {
         $inc: { sold: quantity, stock: -quantity }
@@ -502,12 +584,11 @@ exports.updateSoldCount = async (req, res) => {
       { new: true }
     );
 
-    // Nếu không tìm thấy hoặc không đủ hàng
     if (!updatedSaleProduct) {
       const product = await SaleProduct.findById(id);
       return res.status(400).json({
         status: 400,
-        message: "Không đủ hàng trong kho",
+        message: "Không đủ hàng trong kho hoặc sản phẩm không tồn tại",
         data: {
           available: product?.stock || 0,
           requested: quantity,
@@ -534,13 +615,14 @@ exports.updateSoldCount = async (req, res) => {
 exports.getBestSellingProducts = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
-    limit = Number(limit);
+    const limitNum = Number(limit) > 0 ? Number(limit) : 10;
 
-    if (!limit || limit <= 0) limit = 10;
-
-    const saleProducts = await SaleProduct.find({ sold: { $gt: 0 } })
+    const saleProducts = await SaleProduct.find({ 
+        sold: { $gt: 0 },
+        isActive: true 
+    })
       .sort({ sold: -1 })
-      .limit(limit);
+      .limit(limitNum);
 
     res.json({
       status: 200,
@@ -556,29 +638,54 @@ exports.getBestSellingProducts = async (req, res) => {
     });
   }
 };
+// Toggle trạng thái sản phẩm (active / inactive)
+exports.toggleSaleProductStatus = async (req, res) => {
+    try {
+        const objectId = new Types.ObjectId(req.params.id);
+        const saleProduct = await SaleProduct.findById(objectId);
+        
+        if (!saleProduct) {
+            return res.status(404).json({ 
+                status: 404, 
+                message: 'Không tìm thấy sản phẩm khuyến mãi' 
+            });
+        }
+
+        saleProduct.isActive = !saleProduct.isActive;
+        const updatedProduct = await saleProduct.save();
+
+        res.json({
+            status: 200,
+            message: `Sản phẩm đã được ${updatedProduct.isActive ? 'kích hoạt' : 'vô hiệu hóa'} thành công`,
+            data: updatedProduct
+        });
+    } catch (error) {
+        console.error("Toggle sale product status error:", error);
+        res.status(500).json({ 
+            status: 500,
+            message: 'Lỗi khi thay đổi trạng thái sản phẩm', 
+            error: error.message 
+        });
+    }
+};
+
+// Chi tiết kèm bình luận
 exports.getSaleProductDetailWithComments = async (req, res) => {
   try {
     const { id } = req.params;
     const objectId = new Types.ObjectId(id);
 
-    const allComments = await Comment.find();
-    console.log(
-      "📌 Tất cả comment trong DB:",
-      allComments.map((c) => ({
-        _id: c._id,
-        productId: c.productId,
-        type: c.type,
-        rating: c.rating,
-        content: c.content,
-      }))
-    );
-
-    const product = await SaleProduct.findById(objectId);
+    const product = await SaleProduct.findById(objectId).populate("sizes");
     if (!product) {
       return res.status(404).json({ message: "Sale product not found" });
     }
 
-    console.log("📌 Query comment với:", { productId: objectId, type: "sale" });
+    const isAdmin = req.query.admin === "true";
+    if (!product.isActive && !isAdmin) {
+        return res.status(403).json({
+            message: "Sản phẩm tạm thời không khả dụng",
+        });
+    }
 
     const comments = await Comment.find({
       productId: { $in: [objectId, id] },
@@ -586,11 +693,6 @@ exports.getSaleProductDetailWithComments = async (req, res) => {
     })
       .populate("userId", "name avatar")
       .sort({ createdAt: -1 });
-
-    console.log("📌 Query comment với:", {
-      productId: [objectId, id],
-      type: "sale",
-    });
 
     const totalReviews = comments.length;
     const averageRating =

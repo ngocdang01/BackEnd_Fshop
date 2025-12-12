@@ -1,6 +1,6 @@
 const Category = require('../model/model_categorie');
 const Product = require("../model/model_product");
-
+const SaleProduct = require("../model/model_sale_product");
 // lay danh sach tat ca danh muc
 
 exports.getAllCategories = async (req, res)=>
@@ -148,24 +148,27 @@ exports.toggleCategoryStatus = async (req, res) => {
             return res.status(404).json({ message: "Không tìm thấy danh mục" });
         }
 
-        // Đảo trạng thái
         category.isActive = !category.isActive;
         await category.save();
-
-        // Nếu tắt danh mục → tắt tất cả sản phẩm thuộc danh mục
         if (!category.isActive) {
             await Product.updateMany(
                 { categoryCode: category.code },
                 { $set: { isActive: false } }
             );
+            await SaleProduct.updateMany(
+                { categoryCode: category.code },
+                { $set: { isActive: false } }
+            );
         } else {
-            // Nếu bật danh mục → bật lại sản phẩm
             await Product.updateMany(
                 { categoryCode: category.code },
                 { $set: { isActive: true } }
             );
+            await SaleProduct.updateMany(
+                { categoryCode: category.code },
+                { $set: { isActive: true } }
+            );
         }
-
         return res.json({
             success: true,
             message: `Danh mục đã ${category.isActive ? "kích hoạt" : "vô hiệu hóa"} thành công`,
