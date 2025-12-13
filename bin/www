@@ -4,8 +4,14 @@
  * Module dependencies.
  */
 
-var  { app, server } = require("../app");
+// 1. SỬA CÁCH IMPORT
+// Import object chứa { app, server } từ file app.js
+var myApp = require("../app");
+var app = myApp.app;
+var server = myApp.server; // ✅ Đây là server đã được gắn Socket.IO bên app.js
+
 var debug = require("debug")("backend-fshop:server");
+// var http = require("http"); // Không cần dòng này nữa vì server đã có rồi
 
 /**
  * Get port from environment and store in Express.
@@ -15,9 +21,17 @@ var port = normalizePort(process.env.PORT || "3002");
 app.set("port", port);
 
 /**
+ * Create HTTP server.
+ */
+
+// ❌ QUAN TRỌNG: ĐÃ XÓA DÒNG "var server = http.createServer(app);"
+// Vì nếu để lại, nó sẽ tạo server mới và làm mất kết nối Socket.
+
+/**
  * Listen on provided port, on all network interfaces.
  */
 
+// Server này bây giờ đã có Socket.IO, lắng nghe đúng port
 server.listen(port);
 server.on("error", onError);
 server.on("listening", onListening);
@@ -51,9 +65,7 @@ function onError(error) {
     throw error;
   }
 
-  var bind = typeof port === "string" 
-  ? "Pipe " + port 
-  : "Port " + port;
+  var bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
@@ -76,8 +88,7 @@ function onError(error) {
 
 function onListening() {
   var addr = server.address();
-  var bind = typeof addr === "string" 
-  ? "pipe " + addr 
-  : "port " + addr.port;
+  var bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
   debug("Listening on " + bind);
+  console.log("🚀 Server Socket.IO đã sẵn sàng tại port " + port);
 }

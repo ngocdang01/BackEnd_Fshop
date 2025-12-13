@@ -265,6 +265,7 @@ if (io) {
     type: 'order',
     data: { orderId: savedOrder._id },
   });
+  
 }
 
 try {
@@ -350,16 +351,17 @@ getOrdersByUserId: async (req, res) => {
       return res.status(200).json({ data: [] });
     }
 
-    const populatedOrders = await Promise.all(
-      orders.map(async (order) => {
+    // Sử dụng vòng lặp an toàn thay vì Promise.all để tránh treo
+      const populatedOrders = [];
+      for (const order of orders) {
         try {
-          return await populateProductDetails(order);
-        } catch (populateError) {
-          console.error(`❌ Lỗi populate đơn ${order._id}:`, populateError.message);
-          return order;
+            const detail = await populateProductDetails(order);
+            populatedOrders.push(detail);
+        } catch (err) {
+            console.error(`⚠️ Bỏ qua lỗi đơn ${order._id}`);
+            populatedOrders.push(order); // Lỗi vẫn trả về đơn gốc
         }
-      })
-    );
+      }
 
     return res.status(200).json({ data: populatedOrders });
   } catch (error) {
